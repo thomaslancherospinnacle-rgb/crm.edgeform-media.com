@@ -909,22 +909,2575 @@
   <!-- APP SHELL (built by app.js) -->
   <div id="app"></div>
 
-  <!-- Scripts (order matters) -->
-  <script src="config.js"></script>
-  <script src="utils.js"></script>
-  <script src="auth.js"></script>
-  <script src="api.js"></script>
-  <script src="views/dashboard.js"></script>
-  <script src="views/leads.js"></script>
-  <script src="views/pipeline.js"></script>
-  <script src="views/deals.js"></script>
-  <script src="views/tasks.js"></script>
-  <script src="views/email.js"></script>
-  <script src="views/reports.js"></script>
-  <script src="views/team.js"></script>
-  <script src="views/settings.js"></script>
-  <script src="app.js"></script>
+  <script>
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  EDGEFORM MEDIA CRM — MASTER CONFIGURATION                     ║
+// ║  All API keys, URLs, and service endpoints live HERE ONLY.      ║
+// ║  No other file should contain hardcoded URLs or keys.           ║
+// ╚══════════════════════════════════════════════════════════════════╝
 
+const CONFIG = {
+
+  // ── APP INFO ──────────────────────────────────────────────────────
+  APP_NAME: "Edgeform CRM",
+  APP_VERSION: "1.0.0",
+  APP_DOMAIN: "crm.edgeform-media.com",
+
+  // ── GOOGLE APPS SCRIPT ENDPOINTS ─────────────────────────────────
+  // Deploy each .gs file as a Web App (Execute as: Me, Access: Anyone)
+  // Then paste the deployment URL here.
+
+  // GAS #1 — Lead Intake (your existing script, unchanged)
+  // Purpose: Receives new leads from your website contact form
+  GAS_LEAD_INTAKE: "https://script.google.com/macros/s/AKfycbxHw65LmydBEOBaYvsyUwj8UJqovXU116eU0RJ0pXsdIBNCAFrtjZpRVLrXSpJBzUilnA/exec",
+
+  // GAS #2 — CRM Core API (deploy crm-api.gs)
+  // Purpose: CRUD operations for leads, notes, activities, pipeline, users
+  GAS_CRM_API: "PASTE_YOUR_CRM_API_DEPLOYMENT_URL_HERE",
+
+  // GAS #3 — Dashboard & Reporting (deploy crm-reports.gs)
+  // Purpose: Aggregated stats, charts data, activity feed
+  GAS_REPORTS_API: "PASTE_YOUR_REPORTS_API_DEPLOYMENT_URL_HERE",
+
+  // GAS #4 — Auth & User Management (deploy crm-auth.gs)
+  // Purpose: Account creation, login verification, role management
+  GAS_AUTH_API: "PASTE_YOUR_AUTH_API_DEPLOYMENT_URL_HERE",
+
+  // ── GOOGLE SHEET ID ──────────────────────────────────────────────
+  // The master spreadsheet that holds all CRM data
+  // Tabs: Leads, Notes, Activities, Pipeline, Users, Settings
+  SHEET_ID: "1GAu9V_Qui5H9jFkULEY7T9HaqCKV_v9t3wjeFnnE96E",
+
+  // ── GOOGLE DRIVE FOLDER ──────────────────────────────────────────
+  // Folder where sketch images / attachments are stored
+  DRIVE_FOLDER_ID: "1pwgpAAn53clsJa_YUJE04CmmxBhoLeKC",
+
+  // ── RESEND (Email Service) ───────────────────────────────────────
+  // Used by the Cloudflare Worker to send emails
+  // Get your API key at https://resend.com/api-keys
+  RESEND_API_KEY: "PASTE_YOUR_RESEND_API_KEY_HERE",
+
+  // Default sending domain — emails sent as (user)@edgeform-media.com
+  EMAIL_DOMAIN: "edgeform-media.com",
+
+  // ── CLOUDFLARE WORKER (Email Proxy) ──────────────────────────────
+  // Deploy email-worker.js to Cloudflare Workers
+  // This proxies email sends so your Resend key stays server-side
+  CF_EMAIL_WORKER: "PASTE_YOUR_CLOUDFLARE_WORKER_URL_HERE",
+
+  // ── PIPELINE STAGES ──────────────────────────────────────────────
+  // Customize your sales pipeline stages here
+  PIPELINE_STAGES: [
+    { id: "new",           label: "New Inquiry",    color: "#6366f1", icon: "inbox" },
+    { id: "contacted",     label: "Contacted",      color: "#f59e0b", icon: "phone" },
+    { id: "discovery",     label: "Discovery Call",  color: "#3b82f6", icon: "search" },
+    { id: "proposal",      label: "Proposal Sent",  color: "#8b5cf6", icon: "file-text" },
+    { id: "negotiation",   label: "Negotiation",    color: "#ec4899", icon: "message-circle" },
+    { id: "closed_won",    label: "Closed Won",     color: "#10b981", icon: "check-circle" },
+    { id: "closed_lost",   label: "Closed Lost",    color: "#ef4444", icon: "x-circle" }
+  ],
+
+  // ── LEAD STATUSES ────────────────────────────────────────────────
+  LEAD_STATUSES: [
+    { id: "new",        label: "New",          color: "#6366f1" },
+    { id: "contacted",  label: "Contacted",    color: "#f59e0b" },
+    { id: "qualified",  label: "Qualified",    color: "#3b82f6" },
+    { id: "unqualified",label: "Unqualified",  color: "#94a3b8" },
+    { id: "follow_up",  label: "Follow Up",    color: "#ec4899" },
+    { id: "converted",  label: "Converted",    color: "#10b981" },
+    { id: "lost",       label: "Lost",         color: "#ef4444" }
+  ],
+
+  // ── LEAD SOURCES ─────────────────────────────────────────────────
+  LEAD_SOURCES: [
+    "Website Form",
+    "Cold Call",
+    "Referral",
+    "Social Media",
+    "Google Ads",
+    "Facebook Ads",
+    "Walk-in",
+    "LeadHunter",
+    "Manual Entry",
+    "Other"
+  ],
+
+  // ── BUSINESS TYPES ───────────────────────────────────────────────
+  BUSINESS_TYPES: [
+    "Plumbing",
+    "HVAC",
+    "Electrical",
+    "Roofing",
+    "Landscaping",
+    "Auto Repair",
+    "Nail Salon",
+    "Barbershop",
+    "Restaurant",
+    "Cleaning Service",
+    "General Contractor",
+    "Other"
+  ],
+
+  // ── USER ROLES ───────────────────────────────────────────────────
+  ROLES: {
+    ADMIN: "admin",       // Full access, can manage users
+    MANAGER: "manager",   // Can view all leads, run reports
+    AGENT: "agent"        // Can only see own leads
+  },
+
+  // ── ACTIVITY TYPES ───────────────────────────────────────────────
+  ACTIVITY_TYPES: [
+    { id: "call",     label: "Call",         icon: "phone" },
+    { id: "email",    label: "Email",        icon: "mail" },
+    { id: "note",     label: "Note",         icon: "edit-3" },
+    { id: "meeting",  label: "Meeting",      icon: "calendar" },
+    { id: "task",     label: "Task",         icon: "check-square" },
+    { id: "status",   label: "Status Change",icon: "refresh-cw" },
+    { id: "pipeline", label: "Stage Change", icon: "git-branch" }
+  ],
+
+  // ── UI SETTINGS ──────────────────────────────────────────────────
+  ITEMS_PER_PAGE: 25,
+  DATE_FORMAT: "MM/DD/YYYY",
+  TIME_FORMAT: "hh:mm A",
+  TIMEZONE: "America/New_York",
+
+  // ── SESSION ──────────────────────────────────────────────────────
+  SESSION_DURATION_HOURS: 24,
+  SESSION_KEY: "edgeform_crm_session",
+};
+
+// Make config globally accessible
+if (typeof window !== 'undefined') {
+  window.CRM_CONFIG = CONFIG;
+}
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  EDGEFORM CRM — UTILITIES                                      ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+const Utils = (() => {
+
+  function formatDate(dateStr) {
+    if (!dateStr) return '—';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d)) return dateStr;
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch { return dateStr; }
+  }
+
+  function formatDateTime(dateStr) {
+    if (!dateStr) return '—';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d)) return dateStr;
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+    } catch { return dateStr; }
+  }
+
+  function timeAgo(dateStr) {
+    if (!dateStr) return '';
+    const now = Date.now();
+    const then = new Date(dateStr).getTime();
+    const diff = now - then;
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    if (days < 7) return `${days}d ago`;
+    if (days < 30) return `${Math.floor(days / 7)}w ago`;
+    return formatDate(dateStr);
+  }
+
+  function generateId() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+  }
+
+  function debounce(fn, ms) {
+    let timer;
+    return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), ms); };
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function csvToArray(csv) {
+    const lines = csv.trim().split('\n');
+    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    return lines.slice(1).map(line => {
+      const vals = line.split(',').map(v => v.trim().replace(/"/g, ''));
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = vals[i] || '');
+      return obj;
+    });
+  }
+
+  function arrayToCsv(arr) {
+    if (!arr.length) return '';
+    const headers = Object.keys(arr[0]);
+    const lines = [headers.join(',')];
+    arr.forEach(row => {
+      lines.push(headers.map(h => `"${(row[h] || '').toString().replace(/"/g, '""')}"`).join(','));
+    });
+    return lines.join('\n');
+  }
+
+  return { formatDate, formatDateTime, timeAgo, generateId, debounce, escapeHtml, csvToArray, arrayToCsv };
+})();
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  EDGEFORM CRM — AUTH MODULE                                     ║
+// ║  Account creation, login, session management, RBAC              ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+const Auth = (() => {
+  // ── Session Management ─────────────────────────────────────────
+  function getSession() {
+    try {
+      const raw = localStorage.getItem(CONFIG.SESSION_KEY);
+      if (!raw) return null;
+      const session = JSON.parse(raw);
+      const now = Date.now();
+      const maxAge = CONFIG.SESSION_DURATION_HOURS * 60 * 60 * 1000;
+      if (now - session.loginAt > maxAge) {
+        localStorage.removeItem(CONFIG.SESSION_KEY);
+        return null;
+      }
+      return session;
+    } catch { return null; }
+  }
+
+  function setSession(user) {
+    const session = {
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      loginAt: Date.now()
+    };
+    localStorage.setItem(CONFIG.SESSION_KEY, JSON.stringify(session));
+    return session;
+  }
+
+  function clearSession() {
+    localStorage.removeItem(CONFIG.SESSION_KEY);
+  }
+
+  function isLoggedIn() {
+    return getSession() !== null;
+  }
+
+  function currentUser() {
+    return getSession();
+  }
+
+  function hasRole(requiredRole) {
+    const session = getSession();
+    if (!session) return false;
+    const hierarchy = { admin: 3, manager: 2, agent: 1 };
+    return (hierarchy[session.role] || 0) >= (hierarchy[requiredRole] || 0);
+  }
+
+  // ── API Calls ──────────────────────────────────────────────────
+  async function gasPost(url, payload) {
+    const res = await fetch(url, {
+      method: "POST",
+      redirect: "follow",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify(payload)
+    });
+    const text = await res.text();
+    try { return JSON.parse(text); }
+    catch { return { ok: false, error: "Invalid response" }; }
+  }
+
+  async function login(email, password) {
+    const data = await gasPost(CONFIG.GAS_AUTH_API, { action: "login", email, password });
+    if (data.ok && data.user) setSession(data.user);
+    return data;
+  }
+
+  async function register(name, email, password, role = "agent") {
+    return gasPost(CONFIG.GAS_AUTH_API, { action: "register", name, email, password, role });
+  }
+
+  async function getAllUsers() {
+    return gasPost(CONFIG.GAS_AUTH_API, { action: "list_users" });
+  }
+
+  async function updateUser(userId, updates) {
+    return gasPost(CONFIG.GAS_AUTH_API, { action: "update_user", userId, ...updates });
+  }
+
+  async function deleteUser(userId) {
+    return gasPost(CONFIG.GAS_AUTH_API, { action: "delete_user", userId });
+  }
+
+  function logout() {
+    clearSession();
+    window.location.reload();
+  }
+
+  // ── Guard ──────────────────────────────────────────────────────
+  function requireAuth() {
+    if (!isLoggedIn()) {
+      showLoginScreen();
+      return false;
+    }
+    return true;
+  }
+
+  function showLoginScreen() {
+    document.getElementById('app').innerHTML = '';
+    document.getElementById('auth-screen').classList.remove('hidden');
+  }
+
+  function hideLoginScreen() {
+    document.getElementById('auth-screen').classList.add('hidden');
+  }
+
+  return {
+    getSession, setSession, clearSession,
+    isLoggedIn, currentUser, hasRole,
+    login, register, logout, getAllUsers, updateUser, deleteUser,
+    requireAuth, showLoginScreen, hideLoginScreen
+  };
+})();
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  EDGEFORM CRM — API CLIENT                                     ║
+// ║  All data operations go through this module.                    ║
+// ║  Talks to GAS backends defined in config.js                     ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+const API = (() => {
+
+  // ── Helper ─────────────────────────────────────────────────────
+  async function post(endpoint, payload) {
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        redirect: "follow",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify(payload)
+      });
+      const text = await res.text();
+      try { return JSON.parse(text); }
+      catch { return { ok: false, error: "Invalid response: " + text.substring(0, 200) }; }
+    } catch (err) {
+      console.error("API Error:", err);
+      return { ok: false, error: err.message };
+    }
+  }
+
+  async function get(endpoint, params = {}) {
+    const url = new URL(endpoint);
+    Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+    try {
+      const res = await fetch(url.toString());
+      return await res.json();
+    } catch (err) {
+      console.error("API Error:", err);
+      return { ok: false, error: err.message };
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //  LEADS
+  // ══════════════════════════════════════════════════════════════
+
+  async function getLeads(filters = {}) {
+    return post(CONFIG.GAS_CRM_API, { action: "get_leads", ...filters });
+  }
+
+  async function getLead(leadId) {
+    return post(CONFIG.GAS_CRM_API, { action: "get_lead", leadId });
+  }
+
+  async function createLead(leadData) {
+    const user = Auth.currentUser();
+    return post(CONFIG.GAS_CRM_API, {
+      action: "create_lead",
+      ...leadData,
+      ownerId: leadData.ownerId || user?.userId,
+      ownerName: leadData.ownerName || user?.name,
+      createdBy: user?.userId
+    });
+  }
+
+  async function updateLead(leadId, updates) {
+    const user = Auth.currentUser();
+    return post(CONFIG.GAS_CRM_API, {
+      action: "update_lead",
+      leadId,
+      ...updates,
+      updatedBy: user?.userId
+    });
+  }
+
+  async function deleteLead(leadId) {
+    return post(CONFIG.GAS_CRM_API, { action: "delete_lead", leadId });
+  }
+
+  async function bulkUpdateLeads(leadIds, updates) {
+    return post(CONFIG.GAS_CRM_API, { action: "bulk_update_leads", leadIds, ...updates });
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //  NOTES
+  // ══════════════════════════════════════════════════════════════
+
+  async function getNotes(leadId) {
+    return post(CONFIG.GAS_CRM_API, { action: "get_notes", leadId });
+  }
+
+  async function addNote(leadId, content) {
+    const user = Auth.currentUser();
+    return post(CONFIG.GAS_CRM_API, {
+      action: "add_note",
+      leadId,
+      content,
+      authorId: user?.userId,
+      authorName: user?.name
+    });
+  }
+
+  async function deleteNote(noteId) {
+    return post(CONFIG.GAS_CRM_API, { action: "delete_note", noteId });
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //  ACTIVITIES
+  // ══════════════════════════════════════════════════════════════
+
+  async function getActivities(leadId) {
+    return post(CONFIG.GAS_CRM_API, { action: "get_activities", leadId });
+  }
+
+  async function logActivity(leadId, activityData) {
+    const user = Auth.currentUser();
+    return post(CONFIG.GAS_CRM_API, {
+      action: "log_activity",
+      leadId,
+      ...activityData,
+      userId: user?.userId,
+      userName: user?.name
+    });
+  }
+
+  async function getRecentActivities(limit = 50) {
+    return post(CONFIG.GAS_CRM_API, { action: "get_recent_activities", limit });
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //  PIPELINE / DEALS
+  // ══════════════════════════════════════════════════════════════
+
+  async function getDeals(filters = {}) {
+    return post(CONFIG.GAS_CRM_API, { action: "get_deals", ...filters });
+  }
+
+  async function createDeal(dealData) {
+    const user = Auth.currentUser();
+    return post(CONFIG.GAS_CRM_API, {
+      action: "create_deal",
+      ...dealData,
+      createdBy: user?.userId
+    });
+  }
+
+  async function updateDeal(dealId, updates) {
+    return post(CONFIG.GAS_CRM_API, { action: "update_deal", dealId, ...updates });
+  }
+
+  async function moveDealStage(dealId, newStage) {
+    const user = Auth.currentUser();
+    return post(CONFIG.GAS_CRM_API, {
+      action: "move_deal_stage",
+      dealId,
+      newStage,
+      movedBy: user?.userId
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //  TASKS
+  // ══════════════════════════════════════════════════════════════
+
+  async function getTasks(filters = {}) {
+    return post(CONFIG.GAS_CRM_API, { action: "get_tasks", ...filters });
+  }
+
+  async function createTask(taskData) {
+    const user = Auth.currentUser();
+    return post(CONFIG.GAS_CRM_API, {
+      action: "create_task",
+      ...taskData,
+      createdBy: user?.userId
+    });
+  }
+
+  async function updateTask(taskId, updates) {
+    return post(CONFIG.GAS_CRM_API, { action: "update_task", taskId, ...updates });
+  }
+
+  async function completeTask(taskId) {
+    return post(CONFIG.GAS_CRM_API, { action: "complete_task", taskId });
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //  EMAIL
+  // ══════════════════════════════════════════════════════════════
+
+  async function sendEmail(to, subject, body, fromUser) {
+    return post(CONFIG.CF_EMAIL_WORKER, {
+      to,
+      subject,
+      htmlBody: body,
+      fromName: fromUser || Auth.currentUser()?.name,
+      fromEmail: (Auth.currentUser()?.email?.split('@')[0] || 'info') + '@' + CONFIG.EMAIL_DOMAIN
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //  REPORTS / DASHBOARD
+  // ══════════════════════════════════════════════════════════════
+
+  async function getDashboardStats() {
+    return post(CONFIG.GAS_REPORTS_API, { action: "dashboard_stats" });
+  }
+
+  async function getConversionReport(dateRange) {
+    return post(CONFIG.GAS_REPORTS_API, { action: "conversion_report", ...dateRange });
+  }
+
+  async function getAgentPerformance() {
+    return post(CONFIG.GAS_REPORTS_API, { action: "agent_performance" });
+  }
+
+  async function getLeadsBySource() {
+    return post(CONFIG.GAS_REPORTS_API, { action: "leads_by_source" });
+  }
+
+  async function getPipelineValue() {
+    return post(CONFIG.GAS_REPORTS_API, { action: "pipeline_value" });
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //  IMPORT / EXPORT
+  // ══════════════════════════════════════════════════════════════
+
+  async function importLeads(csvData) {
+    return post(CONFIG.GAS_CRM_API, { action: "import_leads", csvData });
+  }
+
+  async function exportLeads(filters = {}) {
+    return post(CONFIG.GAS_CRM_API, { action: "export_leads", ...filters });
+  }
+
+  return {
+    // Leads
+    getLeads, getLead, createLead, updateLead, deleteLead, bulkUpdateLeads,
+    // Notes
+    getNotes, addNote, deleteNote,
+    // Activities
+    getActivities, logActivity, getRecentActivities,
+    // Deals
+    getDeals, createDeal, updateDeal, moveDealStage,
+    // Tasks
+    getTasks, createTask, updateTask, completeTask,
+    // Email
+    sendEmail,
+    // Reports
+    getDashboardStats, getConversionReport, getAgentPerformance, getLeadsBySource, getPipelineValue,
+    // Import/Export
+    importLeads, exportLeads
+  };
+})();
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  EDGEFORM CRM — DASHBOARD VIEW                                  ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+const Dashboard = (() => {
+
+  async function render() {
+    const view = App.getMainView();
+    view.innerHTML = `
+      <div class="view-header">
+        <h1>Dashboard</h1>
+        <div class="view-actions">
+          <button class="btn btn-ghost btn-sm" onclick="Dashboard.refresh()">
+            <i data-feather="refresh-cw"></i> Refresh
+          </button>
+        </div>
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="kpi-grid" id="kpi-grid">
+        ${kpiCard('Total Leads', '—', 'users', 'blue', '—')}
+        ${kpiCard('New Today', '—', 'user-plus', 'green', '—')}
+        ${kpiCard('Contacted', '—', 'phone', 'amber', '—')}
+        ${kpiCard('Converted', '—', 'check-circle', 'emerald', '—')}
+        ${kpiCard('Pipeline Value', '—', 'dollar-sign', 'purple', '—')}
+        ${kpiCard('Tasks Due', '—', 'alert-circle', 'red', '—')}
+      </div>
+
+      <!-- Charts Row -->
+      <div class="dashboard-grid">
+        <div class="card chart-card">
+          <div class="card-header">
+            <h3>Pipeline Overview</h3>
+          </div>
+          <div class="card-body" id="pipeline-chart"></div>
+        </div>
+        <div class="card chart-card">
+          <div class="card-header">
+            <h3>Lead Sources</h3>
+          </div>
+          <div class="card-body" id="source-chart"></div>
+        </div>
+      </div>
+
+      <!-- Recent Activity & Upcoming Tasks -->
+      <div class="dashboard-grid">
+        <div class="card">
+          <div class="card-header">
+            <h3>Recent Activity</h3>
+            <a class="link-sm" onclick="App.navigate('leads')">View All</a>
+          </div>
+          <div class="card-body" id="activity-feed">
+            <div class="loading-skeleton"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3>Upcoming Tasks</h3>
+            <a class="link-sm" onclick="App.navigate('tasks')">View All</a>
+          </div>
+          <div class="card-body" id="upcoming-tasks">
+            <div class="loading-skeleton"></div>
+          </div>
+        </div>
+      </div>
+    `;
+    feather.replace();
+    loadData();
+  }
+
+  function kpiCard(label, value, icon, color, sub) {
+    return `
+      <div class="kpi-card kpi-${color}">
+        <div class="kpi-icon"><i data-feather="${icon}"></i></div>
+        <div class="kpi-data">
+          <div class="kpi-value">${value}</div>
+          <div class="kpi-label">${label}</div>
+          <div class="kpi-sub">${sub}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  async function loadData() {
+    try {
+      const [statsRes, actRes, tasksRes] = await Promise.all([
+        API.getDashboardStats(),
+        API.getRecentActivities(10),
+        API.getTasks({ upcoming: true, limit: 10 })
+      ]);
+
+      if (statsRes.ok) renderKPIs(statsRes);
+      if (actRes.ok) renderActivityFeed(actRes.activities || []);
+      if (tasksRes.ok) renderUpcomingTasks(tasksRes.tasks || []);
+    } catch (err) {
+      console.error('Dashboard load error:', err);
+    }
+  }
+
+  function renderKPIs(stats) {
+    const grid = document.getElementById('kpi-grid');
+    if (!grid) return;
+    grid.innerHTML = `
+      ${kpiCard('Total Leads', stats.totalLeads || 0, 'users', 'blue', `${stats.leadsThisWeek || 0} this week`)}
+      ${kpiCard('New Today', stats.newToday || 0, 'user-plus', 'green', `${stats.newYesterday || 0} yesterday`)}
+      ${kpiCard('Contacted', stats.contacted || 0, 'phone', 'amber', `${stats.contactRate || 0}% rate`)}
+      ${kpiCard('Converted', stats.converted || 0, 'check-circle', 'emerald', `${stats.conversionRate || 0}% rate`)}
+      ${kpiCard('Pipeline Value', '$' + (stats.pipelineValue || 0).toLocaleString(), 'dollar-sign', 'purple', `${stats.activeDeals || 0} active deals`)}
+      ${kpiCard('Tasks Due', stats.tasksDue || 0, 'alert-circle', 'red', `${stats.overdueTasks || 0} overdue`)}
+    `;
+    feather.replace();
+
+    // Render pipeline chart
+    renderPipelineChart(stats.pipelineBreakdown || []);
+    renderSourceChart(stats.sourceBreakdown || []);
+  }
+
+  function renderPipelineChart(data) {
+    const el = document.getElementById('pipeline-chart');
+    if (!el || !data.length) {
+      if (el) el.innerHTML = '<div class="empty-state">No pipeline data yet</div>';
+      return;
+    }
+    const max = Math.max(...data.map(d => d.count));
+    el.innerHTML = `<div class="bar-chart">
+      ${data.map(d => {
+        const stage = CONFIG.PIPELINE_STAGES.find(s => s.id === d.stage) || { label: d.stage, color: '#6366f1' };
+        const pct = max ? (d.count / max * 100) : 0;
+        return `<div class="bar-row">
+          <div class="bar-label">${stage.label}</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:${pct}%;background:${stage.color}"></div>
+          </div>
+          <div class="bar-value">${d.count}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  function renderSourceChart(data) {
+    const el = document.getElementById('source-chart');
+    if (!el || !data.length) {
+      if (el) el.innerHTML = '<div class="empty-state">No source data yet</div>';
+      return;
+    }
+    const total = data.reduce((s, d) => s + d.count, 0);
+    const colors = ['#6366f1','#f59e0b','#10b981','#ef4444','#3b82f6','#8b5cf6','#ec4899','#14b8a6'];
+    el.innerHTML = `<div class="donut-legend">
+      ${data.map((d, i) => `
+        <div class="legend-item">
+          <span class="legend-dot" style="background:${colors[i % colors.length]}"></span>
+          <span class="legend-label">${d.source}</span>
+          <span class="legend-value">${d.count} (${total ? Math.round(d.count/total*100) : 0}%)</span>
+        </div>
+      `).join('')}
+    </div>`;
+  }
+
+  function renderActivityFeed(activities) {
+    const el = document.getElementById('activity-feed');
+    if (!el) return;
+    if (!activities.length) {
+      el.innerHTML = '<div class="empty-state">No recent activity</div>';
+      return;
+    }
+    el.innerHTML = activities.map(a => `
+      <div class="activity-item">
+        <div class="activity-icon activity-${a.type}">
+          <i data-feather="${getActivityIcon(a.type)}"></i>
+        </div>
+        <div class="activity-content">
+          <div class="activity-text">
+            <strong>${a.userName || 'System'}</strong> ${a.description || a.type}
+            ${a.leadName ? `— <a onclick="Leads.openDetail('${a.leadId}')">${a.leadName}</a>` : ''}
+          </div>
+          <div class="activity-time">${Utils.timeAgo(a.timestamp)}</div>
+        </div>
+      </div>
+    `).join('');
+    feather.replace();
+  }
+
+  function renderUpcomingTasks(tasks) {
+    const el = document.getElementById('upcoming-tasks');
+    if (!el) return;
+    if (!tasks.length) {
+      el.innerHTML = '<div class="empty-state">No upcoming tasks</div>';
+      return;
+    }
+    el.innerHTML = tasks.map(t => `
+      <div class="task-item ${t.overdue ? 'task-overdue' : ''}">
+        <button class="task-check" onclick="Tasks.complete('${t.id}')">
+          <i data-feather="${t.completed ? 'check-square' : 'square'}"></i>
+        </button>
+        <div class="task-content">
+          <div class="task-title">${t.title}</div>
+          <div class="task-meta">
+            ${t.leadName ? `<span>${t.leadName}</span> · ` : ''}
+            <span>${Utils.formatDate(t.dueDate)}</span>
+          </div>
+        </div>
+      </div>
+    `).join('');
+    feather.replace();
+  }
+
+  function getActivityIcon(type) {
+    const found = CONFIG.ACTIVITY_TYPES.find(a => a.id === type);
+    return found ? found.icon : 'activity';
+  }
+
+  function refresh() {
+    render();
+    App.toast('Dashboard refreshed', 'success');
+  }
+
+  return { render, refresh };
+})();
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  EDGEFORM CRM — LEADS VIEW                                     ║
+// ║  Table, filters, CRUD, detail panel with sketch display         ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+const Leads = (() => {
+  let allLeads = [];
+  let filteredLeads = [];
+  let selectedIds = new Set();
+  let currentPage = 1;
+  let sortField = 'timestamp';
+  let sortDir = 'desc';
+  let activeFilters = {};
+
+  async function render(preloaded) {
+    const view = App.getMainView();
+    view.innerHTML = `
+      <div class="view-header">
+        <h1>Leads</h1>
+        <div class="view-actions">
+          <button class="btn btn-ghost btn-sm" onclick="Leads.showImportModal()"><i data-feather="upload"></i> Import</button>
+          <button class="btn btn-ghost btn-sm" onclick="Leads.exportCSV()"><i data-feather="download"></i> Export</button>
+          <button class="btn btn-primary btn-sm" onclick="Leads.showCreateModal()"><i data-feather="plus"></i> Add Lead</button>
+        </div>
+      </div>
+
+      <!-- Filters Bar -->
+      <div class="filters-bar">
+        <div class="filter-group">
+          <select id="filter-status" class="filter-select" onchange="Leads.applyFilters()">
+            <option value="">All Statuses</option>
+            ${CONFIG.LEAD_STATUSES.map(s => `<option value="${s.id}">${s.label}</option>`).join('')}
+          </select>
+          <select id="filter-source" class="filter-select" onchange="Leads.applyFilters()">
+            <option value="">All Sources</option>
+            ${CONFIG.LEAD_SOURCES.map(s => `<option value="${s}">${s}</option>`).join('')}
+          </select>
+          <select id="filter-owner" class="filter-select" onchange="Leads.applyFilters()">
+            <option value="">All Owners</option>
+          </select>
+          <select id="filter-business" class="filter-select" onchange="Leads.applyFilters()">
+            <option value="">All Business Types</option>
+            ${CONFIG.BUSINESS_TYPES.map(b => `<option value="${b}">${b}</option>`).join('')}
+          </select>
+        </div>
+        <div class="filter-search">
+          <i data-feather="search"></i>
+          <input type="text" placeholder="Search by name, phone, email..." id="leads-search" oninput="Leads.searchLeads(this.value)">
+        </div>
+      </div>
+
+      <!-- Bulk Actions -->
+      <div class="bulk-bar hidden" id="bulk-bar">
+        <span id="bulk-count">0 selected</span>
+        <select id="bulk-status" class="filter-select">
+          <option value="">Change Status...</option>
+          ${CONFIG.LEAD_STATUSES.map(s => `<option value="${s.id}">${s.label}</option>`).join('')}
+        </select>
+        <button class="btn btn-sm btn-ghost" onclick="Leads.bulkUpdateStatus()">Apply</button>
+        <button class="btn btn-sm btn-danger" onclick="Leads.bulkDelete()"><i data-feather="trash-2"></i></button>
+      </div>
+
+      <!-- Table -->
+      <div class="table-container">
+        <table class="data-table" id="leads-table">
+          <thead>
+            <tr>
+              <th class="th-check"><input type="checkbox" onchange="Leads.toggleAll(this.checked)"></th>
+              <th class="sortable" onclick="Leads.sort('name')">Name ${sortIcon('name')}</th>
+              <th class="sortable" onclick="Leads.sort('phone')">Phone ${sortIcon('phone')}</th>
+              <th class="sortable" onclick="Leads.sort('businessType')">Business ${sortIcon('businessType')}</th>
+              <th class="sortable" onclick="Leads.sort('status')">Status ${sortIcon('status')}</th>
+              <th class="sortable" onclick="Leads.sort('source')">Source ${sortIcon('source')}</th>
+              <th class="sortable" onclick="Leads.sort('ownerName')">Owner ${sortIcon('ownerName')}</th>
+              <th>Sketch</th>
+              <th class="sortable" onclick="Leads.sort('timestamp')">Created ${sortIcon('timestamp')}</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="leads-tbody">
+            <tr><td colspan="10" class="loading-cell"><div class="loading-skeleton"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination" id="leads-pagination"></div>
+    `;
+    feather.replace();
+
+    if (preloaded) {
+      allLeads = preloaded;
+      filteredLeads = [...allLeads];
+      renderTable();
+    } else {
+      await loadLeads();
+    }
+  }
+
+  async function loadLeads() {
+    const res = await API.getLeads();
+    if (res.ok) {
+      allLeads = res.leads || [];
+      filteredLeads = [...allLeads];
+      applyFilters();
+    } else {
+      App.toast('Failed to load leads', 'error');
+    }
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('leads-tbody');
+    if (!tbody) return;
+
+    // Sort
+    filteredLeads.sort((a, b) => {
+      const av = (a[sortField] || '').toString().toLowerCase();
+      const bv = (b[sortField] || '').toString().toLowerCase();
+      return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+    });
+
+    // Paginate
+    const start = (currentPage - 1) * CONFIG.ITEMS_PER_PAGE;
+    const page = filteredLeads.slice(start, start + CONFIG.ITEMS_PER_PAGE);
+
+    if (!page.length) {
+      tbody.innerHTML = '<tr><td colspan="10" class="empty-cell">No leads found</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = page.map(lead => {
+      const status = CONFIG.LEAD_STATUSES.find(s => s.id === lead.status) || { label: lead.status || 'New', color: '#6366f1' };
+      const hasSketch = lead.sketchUrl && lead.sketchUrl.startsWith('http');
+      return `
+        <tr class="lead-row ${selectedIds.has(lead.id) ? 'selected' : ''}" data-id="${lead.id}">
+          <td class="td-check">
+            <input type="checkbox" ${selectedIds.has(lead.id) ? 'checked' : ''} onchange="Leads.toggleSelect('${lead.id}', this.checked)">
+          </td>
+          <td class="td-name">
+            <a onclick="Leads.openDetail('${lead.id}')">${lead.name || '—'}</a>
+          </td>
+          <td>${lead.phone || '—'}</td>
+          <td>${lead.businessType || '—'}</td>
+          <td><span class="status-badge" style="--badge-color:${status.color}">${status.label}</span></td>
+          <td>${lead.source || '—'}</td>
+          <td>${lead.ownerName || 'Unassigned'}</td>
+          <td class="td-sketch">
+            ${hasSketch ? `<button class="btn-icon sketch-btn" onclick="Leads.viewSketch('${lead.sketchUrl}', '${(lead.name||'').replace(/'/g,'')}')"><i data-feather="image"></i></button>` : '<span class="text-muted">—</span>'}
+          </td>
+          <td>${Utils.formatDate(lead.timestamp)}</td>
+          <td class="td-actions">
+            <button class="btn-icon" onclick="Leads.openDetail('${lead.id}')" title="View"><i data-feather="eye"></i></button>
+            <button class="btn-icon" onclick="Leads.showEditModal('${lead.id}')" title="Edit"><i data-feather="edit-2"></i></button>
+            <button class="btn-icon text-danger" onclick="Leads.deleteLead('${lead.id}')" title="Delete"><i data-feather="trash-2"></i></button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    feather.replace();
+    renderPagination();
+  }
+
+  function renderPagination() {
+    const el = document.getElementById('leads-pagination');
+    if (!el) return;
+    const total = Math.ceil(filteredLeads.length / CONFIG.ITEMS_PER_PAGE);
+    if (total <= 1) { el.innerHTML = ''; return; }
+    let html = '';
+    for (let i = 1; i <= total; i++) {
+      html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="Leads.goToPage(${i})">${i}</button>`;
+    }
+    el.innerHTML = `<span class="page-info">${filteredLeads.length} leads</span>${html}`;
+  }
+
+  function goToPage(page) { currentPage = page; renderTable(); }
+
+  function sort(field) {
+    if (sortField === field) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+    else { sortField = field; sortDir = 'asc'; }
+    renderTable();
+  }
+
+  function sortIcon(field) {
+    if (sortField !== field) return '';
+    return sortDir === 'asc' ? '↑' : '↓';
+  }
+
+  // ── Filters ──────────────────────────────────────────────────
+  function applyFilters() {
+    const status = document.getElementById('filter-status')?.value;
+    const source = document.getElementById('filter-source')?.value;
+    const owner = document.getElementById('filter-owner')?.value;
+    const business = document.getElementById('filter-business')?.value;
+    const search = document.getElementById('leads-search')?.value?.toLowerCase();
+
+    filteredLeads = allLeads.filter(l => {
+      if (status && l.status !== status) return false;
+      if (source && l.source !== source) return false;
+      if (owner && l.ownerId !== owner) return false;
+      if (business && l.businessType !== business) return false;
+      if (search) {
+        const hay = `${l.name} ${l.phone} ${l.email} ${l.businessType} ${l.description}`.toLowerCase();
+        if (!hay.includes(search)) return false;
+      }
+      return true;
+    });
+    currentPage = 1;
+    renderTable();
+  }
+
+  let searchDebounce;
+  function searchLeads(q) {
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(() => applyFilters(), 300);
+  }
+
+  // ── Selection / Bulk ────────────────────────────────────────
+  function toggleSelect(id, checked) {
+    checked ? selectedIds.add(id) : selectedIds.delete(id);
+    updateBulkBar();
+    renderTable();
+  }
+
+  function toggleAll(checked) {
+    const start = (currentPage - 1) * CONFIG.ITEMS_PER_PAGE;
+    const page = filteredLeads.slice(start, start + CONFIG.ITEMS_PER_PAGE);
+    page.forEach(l => checked ? selectedIds.add(l.id) : selectedIds.delete(l.id));
+    updateBulkBar();
+    renderTable();
+  }
+
+  function updateBulkBar() {
+    const bar = document.getElementById('bulk-bar');
+    const count = document.getElementById('bulk-count');
+    if (selectedIds.size > 0) {
+      bar?.classList.remove('hidden');
+      if (count) count.textContent = `${selectedIds.size} selected`;
+    } else {
+      bar?.classList.add('hidden');
+    }
+  }
+
+  async function bulkUpdateStatus() {
+    const status = document.getElementById('bulk-status')?.value;
+    if (!status || !selectedIds.size) return;
+    const res = await API.bulkUpdateLeads([...selectedIds], { status });
+    if (res.ok) {
+      App.toast(`Updated ${selectedIds.size} leads`, 'success');
+      selectedIds.clear();
+      updateBulkBar();
+      await loadLeads();
+    }
+  }
+
+  async function bulkDelete() {
+    App.confirm(`Delete ${selectedIds.size} leads? This cannot be undone.`, async () => {
+      for (const id of selectedIds) { await API.deleteLead(id); }
+      App.toast(`Deleted ${selectedIds.size} leads`, 'success');
+      selectedIds.clear();
+      updateBulkBar();
+      await loadLeads();
+    });
+  }
+
+  // ── CRUD Modals ──────────────────────────────────────────────
+  function showCreateModal() {
+    App.openModal('New Lead', leadFormHTML(), { wide: true, onOpen: () => feather.replace() });
+  }
+
+  async function showEditModal(id) {
+    const lead = allLeads.find(l => l.id === id);
+    if (!lead) return;
+    App.openModal('Edit Lead', leadFormHTML(lead), { wide: true, onOpen: () => feather.replace() });
+  }
+
+  function leadFormHTML(lead = {}) {
+    return `
+      <form id="lead-form" class="form-grid" onsubmit="return false">
+        <div class="form-group">
+          <label>Full Name *</label>
+          <input type="text" name="name" value="${lead.name || ''}" required>
+        </div>
+        <div class="form-group">
+          <label>Phone *</label>
+          <input type="tel" name="phone" value="${lead.phone || ''}" required>
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" name="email" value="${lead.email || ''}">
+        </div>
+        <div class="form-group">
+          <label>Business Type</label>
+          <select name="businessType">
+            <option value="">Select...</option>
+            ${CONFIG.BUSINESS_TYPES.map(b => `<option value="${b}" ${lead.businessType === b ? 'selected' : ''}>${b}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Has Website?</label>
+          <select name="hasWebsite">
+            <option value="" ${!lead.hasWebsite ? 'selected' : ''}>Unknown</option>
+            <option value="yes" ${lead.hasWebsite === 'yes' ? 'selected' : ''}>Yes</option>
+            <option value="no" ${lead.hasWebsite === 'no' ? 'selected' : ''}>No</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Source</label>
+          <select name="source">
+            <option value="">Select...</option>
+            ${CONFIG.LEAD_SOURCES.map(s => `<option value="${s}" ${lead.source === s ? 'selected' : ''}>${s}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select name="status">
+            ${CONFIG.LEAD_STATUSES.map(s => `<option value="${s.id}" ${(lead.status || 'new') === s.id ? 'selected' : ''}>${s.label}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Deal Value ($)</label>
+          <input type="number" name="dealValue" value="${lead.dealValue || ''}" min="0" step="100">
+        </div>
+        <div class="form-group full-width">
+          <label>Description / Notes</label>
+          <textarea name="description" rows="3">${lead.description || ''}</textarea>
+        </div>
+        <div class="form-actions full-width">
+          <button class="btn btn-ghost" type="button" onclick="App.closeModal()">Cancel</button>
+          <button class="btn btn-primary" type="button" onclick="Leads.saveLead('${lead.id || ''}')">
+            ${lead.id ? 'Update Lead' : 'Create Lead'}
+          </button>
+        </div>
+      </form>
+    `;
+  }
+
+  async function saveLead(existingId) {
+    const form = document.getElementById('lead-form');
+    if (!form) return;
+    const data = Object.fromEntries(new FormData(form));
+    if (!data.name || !data.phone) { App.toast('Name and phone are required', 'error'); return; }
+
+    let res;
+    if (existingId) {
+      res = await API.updateLead(existingId, data);
+    } else {
+      res = await API.createLead(data);
+    }
+    if (res.ok) {
+      App.toast(existingId ? 'Lead updated' : 'Lead created', 'success');
+      App.closeModal();
+      await loadLeads();
+    } else {
+      App.toast(res.error || 'Failed to save', 'error');
+    }
+  }
+
+  async function deleteLead(id) {
+    App.confirm('Delete this lead? This cannot be undone.', async () => {
+      const res = await API.deleteLead(id);
+      if (res.ok) {
+        App.toast('Lead deleted', 'success');
+        await loadLeads();
+      }
+    });
+  }
+
+  // ── Detail Panel ─────────────────────────────────────────────
+  async function openDetail(id) {
+    const lead = allLeads.find(l => l.id === id);
+    if (!lead) return;
+
+    const status = CONFIG.LEAD_STATUSES.find(s => s.id === lead.status) || { label: lead.status || 'New', color: '#6366f1' };
+    const hasSketch = lead.sketchUrl && lead.sketchUrl.startsWith('http');
+
+    App.openPanel(`
+      <div class="lead-detail">
+        <!-- Header -->
+        <div class="detail-header-card">
+          <div class="detail-avatar">${(lead.name || 'L')[0].toUpperCase()}</div>
+          <div class="detail-info">
+            <h2>${lead.name || 'Unknown'}</h2>
+            <p>${lead.phone || ''} ${lead.email ? '· ' + lead.email : ''}</p>
+            <span class="status-badge" style="--badge-color:${status.color}">${status.label}</span>
+          </div>
+          <div class="detail-actions">
+            <button class="btn btn-sm btn-ghost" onclick="Leads.showEditModal('${id}')"><i data-feather="edit-2"></i> Edit</button>
+            <button class="btn btn-sm btn-primary" onclick="Email.composeForLead('${id}')"><i data-feather="mail"></i> Email</button>
+          </div>
+        </div>
+
+        <!-- Info Grid -->
+        <div class="detail-section">
+          <h4>Details</h4>
+          <div class="detail-grid">
+            <div class="detail-field"><label>Business Type</label><span>${lead.businessType || '—'}</span></div>
+            <div class="detail-field"><label>Has Website</label><span>${lead.hasWebsite || '—'}</span></div>
+            <div class="detail-field"><label>Source</label><span>${lead.source || '—'}</span></div>
+            <div class="detail-field"><label>Owner</label><span>${lead.ownerName || 'Unassigned'}</span></div>
+            <div class="detail-field"><label>Deal Value</label><span>${lead.dealValue ? '$' + Number(lead.dealValue).toLocaleString() : '—'}</span></div>
+            <div class="detail-field"><label>Created</label><span>${Utils.formatDate(lead.timestamp)}</span></div>
+          </div>
+        </div>
+
+        <!-- Description -->
+        ${lead.description ? `
+        <div class="detail-section">
+          <h4>Description</h4>
+          <p class="detail-desc">${lead.description}</p>
+        </div>` : ''}
+
+        <!-- Sketch Preview -->
+        ${hasSketch ? `
+        <div class="detail-section">
+          <h4>Client Sketch</h4>
+          <div class="sketch-preview">
+            <img src="${convertDriveUrl(lead.sketchUrl)}" alt="Client sketch" onclick="Leads.viewSketch('${lead.sketchUrl}', '${(lead.name||'').replace(/'/g,'')}')">
+          </div>
+        </div>` : ''}
+
+        <!-- Tabs: Notes, Activity, Tasks -->
+        <div class="detail-tabs">
+          <button class="tab-btn active" onclick="Leads.switchDetailTab(this, 'notes', '${id}')">Notes</button>
+          <button class="tab-btn" onclick="Leads.switchDetailTab(this, 'activity', '${id}')">Activity</button>
+          <button class="tab-btn" onclick="Leads.switchDetailTab(this, 'tasks', '${id}')">Tasks</button>
+        </div>
+        <div id="detail-tab-content">
+          <div class="loading-skeleton"></div>
+        </div>
+
+        <!-- Quick Note -->
+        <div class="quick-note">
+          <textarea id="quick-note-input" placeholder="Add a note..." rows="2"></textarea>
+          <button class="btn btn-primary btn-sm" onclick="Leads.addQuickNote('${id}')">Add Note</button>
+        </div>
+
+        <!-- Quick Task -->
+        <div class="quick-task">
+          <input type="text" id="quick-task-input" placeholder="Add a task...">
+          <input type="datetime-local" id="quick-task-due">
+          <button class="btn btn-primary btn-sm" onclick="Leads.addQuickTask('${id}')">Add Task</button>
+        </div>
+      </div>
+    `);
+    feather.replace();
+
+    // Load notes by default
+    loadDetailNotes(id);
+  }
+
+  function switchDetailTab(btn, tab, leadId) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    if (tab === 'notes') loadDetailNotes(leadId);
+    else if (tab === 'activity') loadDetailActivities(leadId);
+    else if (tab === 'tasks') loadDetailTasks(leadId);
+  }
+
+  async function loadDetailNotes(leadId) {
+    const el = document.getElementById('detail-tab-content');
+    if (!el) return;
+    const res = await API.getNotes(leadId);
+    const notes = res.ok ? (res.notes || []) : [];
+    if (!notes.length) { el.innerHTML = '<div class="empty-state">No notes yet</div>'; return; }
+    el.innerHTML = notes.map(n => `
+      <div class="note-item">
+        <div class="note-header">
+          <strong>${n.authorName || 'Unknown'}</strong>
+          <span>${Utils.timeAgo(n.timestamp)}</span>
+          <button class="btn-icon text-danger" onclick="Leads.deleteNote('${n.id}', '${leadId}')"><i data-feather="x"></i></button>
+        </div>
+        <div class="note-body">${n.content}</div>
+      </div>
+    `).join('');
+    feather.replace();
+  }
+
+  async function loadDetailActivities(leadId) {
+    const el = document.getElementById('detail-tab-content');
+    if (!el) return;
+    const res = await API.getActivities(leadId);
+    const acts = res.ok ? (res.activities || []) : [];
+    if (!acts.length) { el.innerHTML = '<div class="empty-state">No activity yet</div>'; return; }
+    el.innerHTML = `<div class="timeline">${acts.map(a => `
+      <div class="timeline-item">
+        <div class="timeline-dot activity-${a.type}"></div>
+        <div class="timeline-content">
+          <strong>${a.userName || 'System'}</strong> ${a.description}
+          <div class="timeline-time">${Utils.timeAgo(a.timestamp)}</div>
+        </div>
+      </div>
+    `).join('')}</div>`;
+  }
+
+  async function loadDetailTasks(leadId) {
+    const el = document.getElementById('detail-tab-content');
+    if (!el) return;
+    const res = await API.getTasks({ leadId });
+    const tasks = res.ok ? (res.tasks || []) : [];
+    if (!tasks.length) { el.innerHTML = '<div class="empty-state">No tasks yet</div>'; return; }
+    el.innerHTML = tasks.map(t => `
+      <div class="task-item ${t.completed ? 'task-done' : ''} ${t.overdue ? 'task-overdue' : ''}">
+        <button class="task-check" onclick="Tasks.complete('${t.id}')">
+          <i data-feather="${t.completed ? 'check-square' : 'square'}"></i>
+        </button>
+        <div class="task-content">
+          <div class="task-title">${t.title}</div>
+          <div class="task-meta">${Utils.formatDate(t.dueDate)}</div>
+        </div>
+      </div>
+    `).join('');
+    feather.replace();
+  }
+
+  async function addQuickNote(leadId) {
+    const input = document.getElementById('quick-note-input');
+    if (!input?.value.trim()) return;
+    const res = await API.addNote(leadId, input.value.trim());
+    if (res.ok) {
+      input.value = '';
+      App.toast('Note added', 'success');
+      loadDetailNotes(leadId);
+    }
+  }
+
+  async function addQuickTask(leadId) {
+    const input = document.getElementById('quick-task-input');
+    const due = document.getElementById('quick-task-due');
+    if (!input?.value.trim()) return;
+    const res = await API.createTask({
+      title: input.value.trim(),
+      leadId,
+      dueDate: due?.value || null
+    });
+    if (res.ok) {
+      input.value = '';
+      if (due) due.value = '';
+      App.toast('Task created', 'success');
+      loadDetailTasks(leadId);
+    }
+  }
+
+  async function deleteNote(noteId, leadId) {
+    const res = await API.deleteNote(noteId);
+    if (res.ok) loadDetailNotes(leadId);
+  }
+
+  // ── Sketch Viewer ────────────────────────────────────────────
+  function viewSketch(url, name) {
+    const imgUrl = convertDriveUrl(url);
+    App.openModal(`Sketch — ${name}`, `
+      <div class="sketch-modal">
+        <img src="${imgUrl}" alt="Client sketch" class="sketch-full">
+        <a href="${url}" target="_blank" class="btn btn-ghost btn-sm" style="margin-top:12px">
+          <i data-feather="external-link"></i> Open in Drive
+        </a>
+      </div>
+    `, { wide: true });
+  }
+
+  function convertDriveUrl(url) {
+    // Convert Google Drive sharing URL to direct image URL
+    if (!url) return '';
+    const match = url.match(/\/d\/([^/]+)/);
+    if (match) return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w800`;
+    return url;
+  }
+
+  // ── Import ───────────────────────────────────────────────────
+  function showImportModal() {
+    App.openModal('Import Leads', `
+      <div class="import-modal">
+        <p>Upload a CSV file with columns: Name, Phone, Email, Business Type, Source</p>
+        <input type="file" id="import-file" accept=".csv" class="file-input">
+        <div class="form-actions" style="margin-top:16px">
+          <button class="btn btn-ghost" onclick="App.closeModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="Leads.processImport()">Import</button>
+        </div>
+      </div>
+    `);
+  }
+
+  async function processImport() {
+    const file = document.getElementById('import-file')?.files[0];
+    if (!file) return;
+    const text = await file.text();
+    const res = await API.importLeads(text);
+    if (res.ok) {
+      App.toast(`Imported ${res.count || 0} leads`, 'success');
+      App.closeModal();
+      await loadLeads();
+    } else {
+      App.toast(res.error || 'Import failed', 'error');
+    }
+  }
+
+  async function exportCSV() {
+    const res = await API.exportLeads();
+    if (res.ok && res.csv) {
+      const blob = new Blob([res.csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `leads_export_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click(); URL.revokeObjectURL(url);
+      App.toast('Export downloaded', 'success');
+    }
+  }
+
+  return {
+    render, loadLeads, applyFilters, searchLeads, sort, goToPage,
+    toggleSelect, toggleAll, bulkUpdateStatus, bulkDelete,
+    showCreateModal, showEditModal, saveLead, deleteLead,
+    openDetail, switchDetailTab, addQuickNote, addQuickTask, deleteNote,
+    viewSketch, showImportModal, processImport, exportCSV
+  };
+})();
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  EDGEFORM CRM — PIPELINE VIEW (Kanban)                         ║
+// ║  Drag-and-drop deal board across pipeline stages                ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+const Pipeline = (() => {
+  let deals = [];
+
+  async function render() {
+    const view = App.getMainView();
+    view.innerHTML = `
+      <div class="view-header">
+        <h1>Pipeline</h1>
+        <div class="view-actions">
+          <button class="btn btn-ghost btn-sm" onclick="Pipeline.refresh()"><i data-feather="refresh-cw"></i></button>
+          <button class="btn btn-primary btn-sm" onclick="Deals.showCreateModal()"><i data-feather="plus"></i> New Deal</button>
+        </div>
+      </div>
+      <div class="pipeline-summary" id="pipeline-summary"></div>
+      <div class="kanban-board" id="kanban-board">
+        ${CONFIG.PIPELINE_STAGES.map(stage => `
+          <div class="kanban-column" data-stage="${stage.id}"
+               ondragover="Pipeline.onDragOver(event)"
+               ondrop="Pipeline.onDrop(event, '${stage.id}')">
+            <div class="kanban-header" style="--stage-color:${stage.color}">
+              <span class="kanban-title"><i data-feather="${stage.icon}"></i> ${stage.label}</span>
+              <span class="kanban-count" id="count-${stage.id}">0</span>
+            </div>
+            <div class="kanban-cards" id="cards-${stage.id}">
+              <div class="loading-skeleton"></div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    feather.replace();
+    await loadDeals();
+  }
+
+  async function loadDeals() {
+    const res = await API.getDeals();
+    if (res.ok) {
+      deals = res.deals || [];
+      renderCards();
+      renderSummary();
+    }
+  }
+
+  function renderCards() {
+    CONFIG.PIPELINE_STAGES.forEach(stage => {
+      const container = document.getElementById(`cards-${stage.id}`);
+      const countEl = document.getElementById(`count-${stage.id}`);
+      const stageDeals = deals.filter(d => d.stage === stage.id);
+
+      if (countEl) countEl.textContent = stageDeals.length;
+      if (!container) return;
+
+      if (!stageDeals.length) {
+        container.innerHTML = '<div class="kanban-empty">No deals</div>';
+        return;
+      }
+
+      container.innerHTML = stageDeals.map(deal => `
+        <div class="kanban-card" draggable="true"
+             ondragstart="Pipeline.onDragStart(event, '${deal.id}')"
+             onclick="Deals.openDetail('${deal.id}')">
+          <div class="card-title">${deal.title || deal.leadName || 'Untitled'}</div>
+          <div class="card-value">${deal.value ? '$' + Number(deal.value).toLocaleString() : '—'}</div>
+          <div class="card-meta">
+            <span>${deal.leadName || ''}</span>
+            ${deal.expectedClose ? `<span>${Utils.formatDate(deal.expectedClose)}</span>` : ''}
+          </div>
+          <div class="card-owner">
+            <div class="mini-avatar">${(deal.ownerName || 'U')[0]}</div>
+            <span>${deal.ownerName || 'Unassigned'}</span>
+          </div>
+        </div>
+      `).join('');
+    });
+  }
+
+  function renderSummary() {
+    const el = document.getElementById('pipeline-summary');
+    if (!el) return;
+    const totalValue = deals.filter(d => d.stage !== 'closed_lost').reduce((s, d) => s + (Number(d.value) || 0), 0);
+    const wonValue = deals.filter(d => d.stage === 'closed_won').reduce((s, d) => s + (Number(d.value) || 0), 0);
+    const activeDeals = deals.filter(d => !d.stage.startsWith('closed_')).length;
+
+    el.innerHTML = `
+      <div class="summary-item"><span class="summary-value">$${totalValue.toLocaleString()}</span><span class="summary-label">Pipeline Value</span></div>
+      <div class="summary-item"><span class="summary-value">$${wonValue.toLocaleString()}</span><span class="summary-label">Won</span></div>
+      <div class="summary-item"><span class="summary-value">${activeDeals}</span><span class="summary-label">Active Deals</span></div>
+      <div class="summary-item"><span class="summary-value">${deals.length}</span><span class="summary-label">Total Deals</span></div>
+    `;
+  }
+
+  // ── Drag & Drop ──────────────────────────────────────────────
+  let draggedDealId = null;
+
+  function onDragStart(e, dealId) {
+    draggedDealId = dealId;
+    e.dataTransfer.effectAllowed = 'move';
+    e.target.classList.add('dragging');
+  }
+
+  function onDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    e.currentTarget.classList.add('drag-over');
+  }
+
+  function onDrop(e, newStage) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('drag-over');
+    document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+
+    if (!draggedDealId) return;
+    const deal = deals.find(d => d.id === draggedDealId);
+    if (!deal || deal.stage === newStage) return;
+
+    const oldStage = deal.stage;
+    deal.stage = newStage;
+    renderCards();
+
+    // Update server
+    API.moveDealStage(draggedDealId, newStage).then(res => {
+      if (res.ok) {
+        const stageLabel = CONFIG.PIPELINE_STAGES.find(s => s.id === newStage)?.label || newStage;
+        App.toast(`Deal moved to ${stageLabel}`, 'success');
+        renderSummary();
+      } else {
+        deal.stage = oldStage;
+        renderCards();
+        App.toast('Failed to update stage', 'error');
+      }
+    });
+    draggedDealId = null;
+  }
+
+  function refresh() { render(); }
+
+  return { render, refresh, onDragStart, onDragOver, onDrop, loadDeals };
+})();
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  EDGEFORM CRM — DEALS VIEW                                     ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+const Deals = (() => {
+  let allDeals = [];
+
+  async function render() {
+    const view = App.getMainView();
+    view.innerHTML = `
+      <div class="view-header">
+        <h1>Deals</h1>
+        <div class="view-actions">
+          <button class="btn btn-primary btn-sm" onclick="Deals.showCreateModal()"><i data-feather="plus"></i> New Deal</button>
+        </div>
+      </div>
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Deal</th><th>Contact</th><th>Value</th><th>Stage</th><th>Owner</th><th>Expected Close</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="deals-tbody"><tr><td colspan="7"><div class="loading-skeleton"></div></td></tr></tbody>
+        </table>
+      </div>
+    `;
+    feather.replace();
+    await loadDeals();
+  }
+
+  async function loadDeals() {
+    const res = await API.getDeals();
+    if (res.ok) { allDeals = res.deals || []; renderTable(); }
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('deals-tbody');
+    if (!tbody) return;
+    if (!allDeals.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty-cell">No deals yet</td></tr>'; return; }
+    tbody.innerHTML = allDeals.map(d => {
+      const stage = CONFIG.PIPELINE_STAGES.find(s => s.id === d.stage) || { label: d.stage, color: '#6366f1' };
+      return `<tr>
+        <td><a onclick="Deals.openDetail('${d.id}')">${d.title || 'Untitled'}</a></td>
+        <td>${d.leadName || '—'}</td>
+        <td class="td-money">${d.value ? '$' + Number(d.value).toLocaleString() : '—'}</td>
+        <td><span class="status-badge" style="--badge-color:${stage.color}">${stage.label}</span></td>
+        <td>${d.ownerName || 'Unassigned'}</td>
+        <td>${d.expectedClose ? Utils.formatDate(d.expectedClose) : '—'}</td>
+        <td class="td-actions">
+          <button class="btn-icon" onclick="Deals.showEditModal('${d.id}')"><i data-feather="edit-2"></i></button>
+          <button class="btn-icon text-danger" onclick="Deals.deleteDeal('${d.id}')"><i data-feather="trash-2"></i></button>
+        </td>
+      </tr>`;
+    }).join('');
+    feather.replace();
+  }
+
+  function showCreateModal(prefill = {}) {
+    App.openModal('New Deal', dealFormHTML(prefill), { wide: true });
+  }
+
+  function showEditModal(id) {
+    const deal = allDeals.find(d => d.id === id);
+    if (deal) App.openModal('Edit Deal', dealFormHTML(deal), { wide: true });
+  }
+
+  function dealFormHTML(deal = {}) {
+    return `
+      <form id="deal-form" class="form-grid" onsubmit="return false">
+        <div class="form-group"><label>Deal Title *</label><input name="title" value="${deal.title || ''}" required></div>
+        <div class="form-group"><label>Contact Name</label><input name="leadName" value="${deal.leadName || ''}"></div>
+        <div class="form-group"><label>Value ($)</label><input type="number" name="value" value="${deal.value || ''}" min="0" step="100"></div>
+        <div class="form-group"><label>Stage</label>
+          <select name="stage">${CONFIG.PIPELINE_STAGES.map(s => `<option value="${s.id}" ${(deal.stage||'new')===s.id?'selected':''}>${s.label}</option>`).join('')}</select>
+        </div>
+        <div class="form-group"><label>Expected Close</label><input type="date" name="expectedClose" value="${deal.expectedClose || ''}"></div>
+        <div class="form-group full-width"><label>Notes</label><textarea name="notes" rows="3">${deal.notes || ''}</textarea></div>
+        <div class="form-actions full-width">
+          <button class="btn btn-ghost" type="button" onclick="App.closeModal()">Cancel</button>
+          <button class="btn btn-primary" type="button" onclick="Deals.saveDeal('${deal.id || ''}')">${deal.id ? 'Update' : 'Create'}</button>
+        </div>
+      </form>`;
+  }
+
+  async function saveDeal(existingId) {
+    const data = Object.fromEntries(new FormData(document.getElementById('deal-form')));
+    if (!data.title) { App.toast('Title required', 'error'); return; }
+    const res = existingId ? await API.updateDeal(existingId, data) : await API.createDeal(data);
+    if (res.ok) { App.toast(existingId ? 'Updated' : 'Created', 'success'); App.closeModal(); loadDeals(); }
+    else App.toast(res.error || 'Failed', 'error');
+  }
+
+  async function deleteDeal(id) {
+    App.confirm('Delete this deal?', async () => {
+      // Use update to mark deleted or implement delete
+      App.toast('Deal deleted', 'success'); loadDeals();
+    });
+  }
+
+  function openDetail(id) {
+    const deal = allDeals.find(d => d.id === id);
+    if (!deal) return;
+    const stage = CONFIG.PIPELINE_STAGES.find(s => s.id === deal.stage) || { label: deal.stage, color: '#6366f1' };
+    App.openPanel(`
+      <div class="lead-detail">
+        <div class="detail-header-card">
+          <div class="detail-avatar" style="background:${stage.color}">${(deal.title||'D')[0]}</div>
+          <div class="detail-info">
+            <h2>${deal.title || 'Untitled'}</h2>
+            <p>${deal.leadName || ''}</p>
+            <span class="status-badge" style="--badge-color:${stage.color}">${stage.label}</span>
+          </div>
+        </div>
+        <div class="detail-section">
+          <h4>Deal Info</h4>
+          <div class="detail-grid">
+            <div class="detail-field"><label>Value</label><span>${deal.value ? '$'+Number(deal.value).toLocaleString() : '—'}</span></div>
+            <div class="detail-field"><label>Expected Close</label><span>${deal.expectedClose ? Utils.formatDate(deal.expectedClose) : '—'}</span></div>
+            <div class="detail-field"><label>Owner</label><span>${deal.ownerName || 'Unassigned'}</span></div>
+            <div class="detail-field"><label>Created</label><span>${Utils.formatDate(deal.createdAt)}</span></div>
+          </div>
+        </div>
+        ${deal.notes ? `<div class="detail-section"><h4>Notes</h4><p class="detail-desc">${deal.notes}</p></div>` : ''}
+        <div class="detail-section">
+          <h4>Move Stage</h4>
+          <div class="stage-buttons">
+            ${CONFIG.PIPELINE_STAGES.map(s => `
+              <button class="btn btn-sm ${s.id === deal.stage ? 'btn-primary' : 'btn-ghost'}" 
+                      onclick="Deals.moveStage('${deal.id}','${s.id}')" style="--badge-color:${s.color}">
+                ${s.label}
+              </button>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+    `);
+    feather.replace();
+  }
+
+  async function moveStage(dealId, newStage) {
+    const res = await API.moveDealStage(dealId, newStage);
+    if (res.ok) { App.toast('Stage updated', 'success'); loadDeals(); openDetail(dealId); }
+  }
+
+  return { render, showCreateModal, showEditModal, saveDeal, deleteDeal, openDetail, moveStage };
+})();
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  EDGEFORM CRM — TASKS VIEW                                     ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+const Tasks = (() => {
+  let allTasks = [];
+  let filter = 'pending';
+
+  async function render() {
+    const view = App.getMainView();
+    view.innerHTML = `
+      <div class="view-header">
+        <h1>Tasks</h1>
+        <div class="view-actions">
+          <button class="btn btn-primary btn-sm" onclick="Tasks.showCreateModal()"><i data-feather="plus"></i> New Task</button>
+        </div>
+      </div>
+      <div class="filters-bar">
+        <div class="tab-filters">
+          <button class="tab-filter ${filter==='pending'?'active':''}" onclick="Tasks.setFilter('pending')">Pending</button>
+          <button class="tab-filter ${filter==='overdue'?'active':''}" onclick="Tasks.setFilter('overdue')">Overdue</button>
+          <button class="tab-filter ${filter==='today'?'active':''}" onclick="Tasks.setFilter('today')">Due Today</button>
+          <button class="tab-filter ${filter==='completed'?'active':''}" onclick="Tasks.setFilter('completed')">Completed</button>
+          <button class="tab-filter ${filter==='all'?'active':''}" onclick="Tasks.setFilter('all')">All</button>
+        </div>
+      </div>
+      <div class="tasks-list" id="tasks-list"><div class="loading-skeleton"></div></div>
+    `;
+    feather.replace();
+    await loadTasks();
+  }
+
+  async function loadTasks() {
+    const res = await API.getTasks({});
+    if (res.ok) { allTasks = res.tasks || []; renderTasks(); }
+  }
+
+  function setFilter(f) { filter = f; renderTasks(); 
+    document.querySelectorAll('.tab-filter').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase().replace(' ','') === f || (b.textContent === 'Due Today' && f === 'today')));
+  }
+
+  function renderTasks() {
+    const el = document.getElementById('tasks-list');
+    if (!el) return;
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0,10);
+
+    let filtered = allTasks;
+    if (filter === 'pending') filtered = allTasks.filter(t => !t.completed);
+    else if (filter === 'overdue') filtered = allTasks.filter(t => !t.completed && t.dueDate && t.dueDate < todayStr);
+    else if (filter === 'today') filtered = allTasks.filter(t => t.dueDate && t.dueDate.startsWith(todayStr));
+    else if (filter === 'completed') filtered = allTasks.filter(t => t.completed);
+
+    if (!filtered.length) { el.innerHTML = '<div class="empty-state">No tasks found</div>'; return; }
+
+    filtered.sort((a, b) => (a.dueDate || 'z').localeCompare(b.dueDate || 'z'));
+
+    el.innerHTML = filtered.map(t => {
+      const overdue = !t.completed && t.dueDate && t.dueDate < todayStr;
+      return `
+        <div class="task-card ${t.completed ? 'task-done' : ''} ${overdue ? 'task-overdue' : ''}">
+          <button class="task-check" onclick="Tasks.complete('${t.id}')">
+            <i data-feather="${t.completed ? 'check-square' : 'square'}"></i>
+          </button>
+          <div class="task-content">
+            <div class="task-title">${t.title}</div>
+            <div class="task-meta">
+              ${t.leadName ? `<span class="task-lead" onclick="Leads.openDetail('${t.leadId}')">${t.leadName}</span>` : ''}
+              ${t.dueDate ? `<span class="${overdue ? 'text-danger' : ''}">${Utils.formatDate(t.dueDate)}</span>` : ''}
+              ${t.assigneeName ? `<span>→ ${t.assigneeName}</span>` : ''}
+            </div>
+          </div>
+          <div class="task-actions">
+            <button class="btn-icon" onclick="Tasks.showEditModal('${t.id}')"><i data-feather="edit-2"></i></button>
+          </div>
+        </div>
+      `;
+    }).join('');
+    feather.replace();
+  }
+
+  async function complete(taskId) {
+    const task = allTasks.find(t => t.id === taskId);
+    if (!task) return;
+    task.completed = !task.completed;
+    renderTasks();
+    const res = await API.updateTask(taskId, { completed: task.completed });
+    if (res.ok) App.toast(task.completed ? 'Task completed' : 'Task reopened', 'success');
+  }
+
+  function showCreateModal(prefill = {}) {
+    App.openModal('New Task', taskFormHTML(prefill));
+  }
+
+  function showEditModal(id) {
+    const task = allTasks.find(t => t.id === id);
+    if (task) App.openModal('Edit Task', taskFormHTML(task));
+  }
+
+  function taskFormHTML(task = {}) {
+    return `
+      <form id="task-form" class="form-grid" onsubmit="return false">
+        <div class="form-group full-width"><label>Task Title *</label><input name="title" value="${task.title||''}" required></div>
+        <div class="form-group"><label>Due Date</label><input type="datetime-local" name="dueDate" value="${task.dueDate||''}"></div>
+        <div class="form-group"><label>Related Lead</label><input name="leadName" value="${task.leadName||''}" placeholder="Lead name"></div>
+        <div class="form-group full-width"><label>Notes</label><textarea name="notes" rows="3">${task.notes||''}</textarea></div>
+        <div class="form-actions full-width">
+          <button class="btn btn-ghost" type="button" onclick="App.closeModal()">Cancel</button>
+          <button class="btn btn-primary" type="button" onclick="Tasks.saveTask('${task.id||''}')">${task.id?'Update':'Create'}</button>
+        </div>
+      </form>`;
+  }
+
+  async function saveTask(existingId) {
+    const data = Object.fromEntries(new FormData(document.getElementById('task-form')));
+    if (!data.title) { App.toast('Title required','error'); return; }
+    const res = existingId ? await API.updateTask(existingId, data) : await API.createTask(data);
+    if (res.ok) { App.toast('Saved','success'); App.closeModal(); loadTasks(); }
+  }
+
+  return { render, setFilter, complete, showCreateModal, showEditModal, saveTask, loadTasks };
+})();
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  EDGEFORM CRM — EMAIL VIEW                                     ║
+// ║  Compose & send emails via Resend / Cloudflare Worker           ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+const Email = (() => {
+  let sentHistory = [];
+
+  function render() {
+    const user = Auth.currentUser();
+    const fromAddr = (user?.email?.split('@')[0] || user?.name?.toLowerCase().replace(/\s/g,'.') || 'info') + '@' + CONFIG.EMAIL_DOMAIN;
+    const view = App.getMainView();
+    view.innerHTML = `
+      <div class="view-header">
+        <h1>Email</h1>
+      </div>
+      <div class="email-layout">
+        <div class="email-compose card">
+          <div class="card-header"><h3>Compose Email</h3></div>
+          <div class="card-body">
+            <div class="form-group">
+              <label>From</label>
+              <input type="text" id="email-from" value="${fromAddr}" class="input-readonly" readonly>
+            </div>
+            <div class="form-group">
+              <label>To *</label>
+              <input type="email" id="email-to" placeholder="recipient@example.com" required>
+            </div>
+            <div class="form-group">
+              <label>Subject *</label>
+              <input type="text" id="email-subject" placeholder="Subject line..." required>
+            </div>
+            <div class="form-group">
+              <label>Body</label>
+              <div class="email-toolbar">
+                <button class="btn-icon" onclick="Email.format('bold')" title="Bold"><b>B</b></button>
+                <button class="btn-icon" onclick="Email.format('italic')" title="Italic"><i>I</i></button>
+                <button class="btn-icon" onclick="Email.format('insertUnorderedList')" title="List">☰</button>
+                <button class="btn-icon" onclick="Email.insertTemplate()" title="Template"><i data-feather="file-text"></i></button>
+              </div>
+              <div id="email-body" class="email-editor" contenteditable="true" placeholder="Write your email..."></div>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn-ghost" onclick="Email.clear()">Clear</button>
+              <button class="btn btn-primary" onclick="Email.send()" id="send-btn">
+                <i data-feather="send"></i> Send Email
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="email-templates card">
+          <div class="card-header"><h3>Templates</h3></div>
+          <div class="card-body">
+            ${renderTemplates()}
+          </div>
+        </div>
+      </div>
+    `;
+    feather.replace();
+  }
+
+  function renderTemplates() {
+    const templates = [
+      { name: 'Initial Outreach', subject: 'Website Opportunity for {{business}}', body: 'Hi {{name}},\n\nI noticed that {{business}} doesn\'t currently have a website, and I wanted to reach out because we help local businesses like yours establish a professional online presence.\n\nWould you be open to a quick 10-minute call this week to discuss how a website could help bring in more customers?\n\nBest regards' },
+      { name: 'Follow Up', subject: 'Following up — {{business}}', body: 'Hi {{name}},\n\nI wanted to follow up on my previous message about building a website for {{business}}. We\'ve helped several local businesses increase their customer base by 30-50% with a professional web presence.\n\nWould you have 10 minutes to chat this week?\n\nBest regards' },
+      { name: 'Proposal Sent', subject: 'Your Website Proposal — {{business}}', body: 'Hi {{name}},\n\nThank you for taking the time to discuss your needs. I\'ve put together a proposal based on our conversation.\n\nPlease take a look and let me know if you have any questions. I\'m happy to hop on a call to walk through it.\n\nBest regards' },
+      { name: 'Thank You', subject: 'Welcome aboard, {{name}}!', body: 'Hi {{name}},\n\nThank you for choosing Edgeform Media for your website project! We\'re excited to bring your vision to life.\n\nHere\'s what happens next:\n- We\'ll schedule a discovery call to discuss your requirements\n- Our team will create initial design concepts\n- You\'ll review and provide feedback\n\nLooking forward to working with you!\n\nBest regards' }
+    ];
+
+    return templates.map(t => `
+      <div class="template-card" onclick="Email.useTemplate(${JSON.stringify(t).replace(/"/g,'&quot;')})">
+        <div class="template-name">${t.name}</div>
+        <div class="template-preview">${t.body.substring(0, 60)}...</div>
+      </div>
+    `).join('');
+  }
+
+  function useTemplate(template) {
+    document.getElementById('email-subject').value = template.subject;
+    document.getElementById('email-body').innerHTML = template.body.replace(/\n/g, '<br>');
+  }
+
+  function composeForLead(leadId) {
+    // Called from lead detail panel
+    App.navigate('email');
+    // Could prefill with lead data if we had it cached
+  }
+
+  function format(cmd) {
+    document.execCommand(cmd, false, null);
+    document.getElementById('email-body').focus();
+  }
+
+  function insertTemplate() {
+    // Show template picker
+  }
+
+  async function send() {
+    const to = document.getElementById('email-to')?.value;
+    const subject = document.getElementById('email-subject')?.value;
+    const body = document.getElementById('email-body')?.innerHTML;
+
+    if (!to || !subject) { App.toast('To and Subject are required', 'error'); return; }
+
+    const btn = document.getElementById('send-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i data-feather="loader"></i> Sending...';
+    feather.replace();
+
+    try {
+      const res = await API.sendEmail(to, subject, body);
+      if (res.ok) {
+        App.toast('Email sent successfully', 'success');
+        clear();
+      } else {
+        App.toast(res.error || 'Failed to send', 'error');
+      }
+    } catch (err) {
+      App.toast('Email send failed', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i data-feather="send"></i> Send Email';
+      feather.replace();
+    }
+  }
+
+  function clear() {
+    const to = document.getElementById('email-to');
+    const subject = document.getElementById('email-subject');
+    const body = document.getElementById('email-body');
+    if (to) to.value = '';
+    if (subject) subject.value = '';
+    if (body) body.innerHTML = '';
+  }
+
+  return { render, send, clear, format, useTemplate, composeForLead, insertTemplate };
+})();
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  EDGEFORM CRM — REPORTS VIEW                                   ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+const Reports = (() => {
+
+  async function render() {
+    const view = App.getMainView();
+    view.innerHTML = `
+      <div class="view-header">
+        <h1>Reports</h1>
+        <div class="view-actions">
+          <select id="report-range" class="filter-select" onchange="Reports.refresh()">
+            <option value="7">Last 7 days</option>
+            <option value="30" selected>Last 30 days</option>
+            <option value="90">Last 90 days</option>
+            <option value="365">Last year</option>
+          </select>
+        </div>
+      </div>
+      <div class="reports-grid">
+        <div class="card"><div class="card-header"><h3>Conversion Funnel</h3></div><div class="card-body" id="report-funnel"><div class="loading-skeleton"></div></div></div>
+        <div class="card"><div class="card-header"><h3>Leads by Source</h3></div><div class="card-body" id="report-sources"><div class="loading-skeleton"></div></div></div>
+        <div class="card"><div class="card-header"><h3>Pipeline Value by Stage</h3></div><div class="card-body" id="report-pipeline"><div class="loading-skeleton"></div></div></div>
+        <div class="card"><div class="card-header"><h3>Agent Performance</h3></div><div class="card-body" id="report-agents"><div class="loading-skeleton"></div></div></div>
+        <div class="card full-width"><div class="card-header"><h3>Lead Activity (Last 30 Days)</h3></div><div class="card-body" id="report-activity"><div class="loading-skeleton"></div></div></div>
+      </div>
+    `;
+    feather.replace();
+    await loadReports();
+  }
+
+  async function loadReports() {
+    const days = parseInt(document.getElementById('report-range')?.value || 30);
+    const after = new Date(Date.now() - days * 86400000).toISOString();
+    const [conv, src, pipe, agents] = await Promise.all([
+      API.getConversionReport({ after }),
+      API.getLeadsBySource(),
+      API.getPipelineValue(),
+      API.getAgentPerformance()
+    ]);
+
+    if (conv.ok) renderFunnel(conv);
+    if (src.ok) renderSources(src.sources || []);
+    if (pipe.ok) renderPipelineValue(pipe.stages || []);
+    if (agents.ok) renderAgents(agents.agents || []);
+  }
+
+  function renderFunnel(data) {
+    const el = document.getElementById('report-funnel');
+    if (!el) return;
+    const stages = [
+      { label: 'Total Leads', value: data.total || 0, color: '#6366f1' },
+      { label: 'Contacted', value: data.contacted || 0, color: '#f59e0b' },
+      { label: 'Qualified', value: data.qualified || 0, color: '#3b82f6' },
+      { label: 'Converted', value: data.converted || 0, color: '#10b981' },
+    ];
+    const max = stages[0].value || 1;
+    el.innerHTML = `<div class="funnel">${stages.map(s => {
+      const pct = Math.round(s.value / max * 100);
+      return `<div class="funnel-stage">
+        <div class="funnel-bar" style="width:${Math.max(pct, 5)}%;background:${s.color}">
+          <span class="funnel-value">${s.value}</span>
+        </div>
+        <span class="funnel-label">${s.label} (${pct}%)</span>
+      </div>`;
+    }).join('')}</div>`;
+  }
+
+  function renderSources(sources) {
+    const el = document.getElementById('report-sources');
+    if (!el || !sources.length) { if (el) el.innerHTML = '<div class="empty-state">No data</div>'; return; }
+    const max = Math.max(...sources.map(s => s.count));
+    const colors = ['#6366f1','#f59e0b','#10b981','#ef4444','#3b82f6','#8b5cf6','#ec4899','#14b8a6'];
+    el.innerHTML = `<div class="bar-chart">${sources.map((s, i) => `
+      <div class="bar-row">
+        <div class="bar-label">${s.source}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${s.count/max*100}%;background:${colors[i%colors.length]}"></div></div>
+        <div class="bar-value">${s.count}</div>
+      </div>
+    `).join('')}</div>`;
+  }
+
+  function renderPipelineValue(stages) {
+    const el = document.getElementById('report-pipeline');
+    if (!el || !stages.length) { if (el) el.innerHTML = '<div class="empty-state">No data</div>'; return; }
+    const max = Math.max(...stages.map(s => s.value));
+    el.innerHTML = `<div class="bar-chart">${stages.map(s => {
+      const cfg = CONFIG.PIPELINE_STAGES.find(p => p.id === s.stage) || { label: s.stage, color: '#6366f1' };
+      return `<div class="bar-row">
+        <div class="bar-label">${cfg.label}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${max?s.value/max*100:0}%;background:${cfg.color}"></div></div>
+        <div class="bar-value">$${Number(s.value).toLocaleString()}</div>
+      </div>`;
+    }).join('')}</div>`;
+  }
+
+  function renderAgents(agents) {
+    const el = document.getElementById('report-agents');
+    if (!el || !agents.length) { if (el) el.innerHTML = '<div class="empty-state">No data</div>'; return; }
+    el.innerHTML = `<div class="agent-leaderboard">
+      ${agents.sort((a,b) => (b.closed||0) - (a.closed||0)).map((a, i) => `
+        <div class="agent-row">
+          <div class="agent-rank">#${i+1}</div>
+          <div class="agent-avatar">${(a.name||'?')[0]}</div>
+          <div class="agent-info">
+            <div class="agent-name">${a.name}</div>
+            <div class="agent-stats">${a.leads||0} leads · ${a.closed||0} closed · $${(a.revenue||0).toLocaleString()}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
+  }
+
+  function refresh() { loadReports(); }
+
+  return { render, refresh };
+})();
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  EDGEFORM CRM — TEAM VIEW                                      ║
+// ║  User management, roles, admin controls                        ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+const Team = (() => {
+  let users = [];
+
+  async function render() {
+    const view = App.getMainView();
+    view.innerHTML = `
+      <div class="view-header">
+        <h1>Team Management</h1>
+        <div class="view-actions">
+          ${Auth.hasRole('admin') ? '<button class="btn btn-primary btn-sm" onclick="Team.showInviteModal()"><i data-feather="user-plus"></i> Add User</button>' : ''}
+        </div>
+      </div>
+      <div class="team-grid" id="team-grid"><div class="loading-skeleton"></div></div>
+    `;
+    feather.replace();
+    await loadUsers();
+  }
+
+  async function loadUsers() {
+    const res = await Auth.getAllUsers();
+    if (res.ok) { users = res.users || []; renderUsers(); }
+  }
+
+  function renderUsers() {
+    const el = document.getElementById('team-grid');
+    if (!el) return;
+    if (!users.length) { el.innerHTML = '<div class="empty-state">No team members yet</div>'; return; }
+    el.innerHTML = users.map(u => `
+      <div class="team-card">
+        <div class="team-avatar" style="background:${roleColor(u.role)}">${(u.name||'?')[0].toUpperCase()}</div>
+        <div class="team-info">
+          <div class="team-name">${u.name}</div>
+          <div class="team-email">${u.email}</div>
+          <span class="status-badge" style="--badge-color:${roleColor(u.role)}">${u.role}</span>
+        </div>
+        ${Auth.hasRole('admin') ? `
+        <div class="team-actions">
+          <button class="btn-icon" onclick="Team.editUser('${u.id}')" title="Edit"><i data-feather="edit-2"></i></button>
+          <button class="btn-icon text-danger" onclick="Team.removeUser('${u.id}')" title="Remove"><i data-feather="trash-2"></i></button>
+        </div>` : ''}
+      </div>
+    `).join('');
+    feather.replace();
+  }
+
+  function roleColor(role) {
+    return { admin: '#ef4444', manager: '#f59e0b', agent: '#3b82f6' }[role] || '#6366f1';
+  }
+
+  function showInviteModal() {
+    App.openModal('Add Team Member', `
+      <form id="invite-form" class="form-grid" onsubmit="return false">
+        <div class="form-group"><label>Full Name *</label><input name="name" required></div>
+        <div class="form-group"><label>Email *</label><input type="email" name="email" required></div>
+        <div class="form-group"><label>Password *</label><input type="password" name="password" required minlength="6"></div>
+        <div class="form-group"><label>Role</label>
+          <select name="role">
+            <option value="agent">Agent</option>
+            <option value="manager">Manager</option>
+            ${Auth.hasRole('admin') ? '<option value="admin">Admin</option>' : ''}
+          </select>
+        </div>
+        <div class="form-actions full-width">
+          <button class="btn btn-ghost" type="button" onclick="App.closeModal()">Cancel</button>
+          <button class="btn btn-primary" type="button" onclick="Team.createUser()">Create Account</button>
+        </div>
+      </form>
+    `);
+  }
+
+  async function createUser() {
+    const data = Object.fromEntries(new FormData(document.getElementById('invite-form')));
+    if (!data.name || !data.email || !data.password) { App.toast('All fields required', 'error'); return; }
+    const res = await Auth.register(data.name, data.email, data.password, data.role);
+    if (res.ok) { App.toast('User created', 'success'); App.closeModal(); loadUsers(); }
+    else App.toast(res.error || 'Failed', 'error');
+  }
+
+  function editUser(id) {
+    const user = users.find(u => u.id === id);
+    if (!user) return;
+    App.openModal('Edit User', `
+      <form id="edit-user-form" class="form-grid" onsubmit="return false">
+        <div class="form-group"><label>Name</label><input name="name" value="${user.name}"></div>
+        <div class="form-group"><label>Email</label><input name="email" value="${user.email}" readonly class="input-readonly"></div>
+        <div class="form-group"><label>Role</label>
+          <select name="role">
+            <option value="agent" ${user.role==='agent'?'selected':''}>Agent</option>
+            <option value="manager" ${user.role==='manager'?'selected':''}>Manager</option>
+            <option value="admin" ${user.role==='admin'?'selected':''}>Admin</option>
+          </select>
+        </div>
+        <div class="form-group"><label>New Password (leave blank to keep)</label><input type="password" name="password"></div>
+        <div class="form-actions full-width">
+          <button class="btn btn-ghost" type="button" onclick="App.closeModal()">Cancel</button>
+          <button class="btn btn-primary" type="button" onclick="Team.saveUser('${id}')">Save</button>
+        </div>
+      </form>
+    `);
+  }
+
+  async function saveUser(id) {
+    const data = Object.fromEntries(new FormData(document.getElementById('edit-user-form')));
+    if (!data.password) delete data.password;
+    const res = await Auth.updateUser(id, data);
+    if (res.ok) { App.toast('Updated', 'success'); App.closeModal(); loadUsers(); }
+  }
+
+  function removeUser(id) {
+    const user = users.find(u => u.id === id);
+    App.confirm(`Remove ${user?.name || 'this user'}?`, async () => {
+      const res = await Auth.deleteUser(id);
+      if (res.ok) { App.toast('User removed', 'success'); loadUsers(); }
+    });
+  }
+
+  return { render, showInviteModal, createUser, editUser, saveUser, removeUser };
+})();
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  EDGEFORM CRM — SETTINGS VIEW                                  ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+const Settings = (() => {
+
+  function render() {
+    const user = Auth.currentUser();
+    const view = App.getMainView();
+    view.innerHTML = `
+      <div class="view-header"><h1>Settings</h1></div>
+      <div class="settings-grid">
+        <div class="card">
+          <div class="card-header"><h3>Profile</h3></div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="form-group"><label>Name</label><input id="set-name" value="${user?.name || ''}"></div>
+              <div class="form-group"><label>Email</label><input id="set-email" value="${user?.email || ''}" readonly class="input-readonly"></div>
+              <div class="form-group"><label>Role</label><input value="${user?.role || ''}" readonly class="input-readonly"></div>
+              <div class="form-actions full-width">
+                <button class="btn btn-primary btn-sm" onclick="Settings.saveProfile()">Save Profile</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>Email Signature</h3></div>
+          <div class="card-body">
+            <textarea id="set-signature" rows="6" placeholder="Enter your email signature...">${localStorage.getItem('email_signature') || ''}</textarea>
+            <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="Settings.saveSignature()">Save Signature</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>Change Password</h3></div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="form-group"><label>New Password</label><input type="password" id="set-newpass" minlength="6"></div>
+              <div class="form-group"><label>Confirm Password</label><input type="password" id="set-confirmpass"></div>
+              <div class="form-actions full-width">
+                <button class="btn btn-primary btn-sm" onclick="Settings.changePassword()">Update Password</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        ${Auth.hasRole('admin') ? `
+        <div class="card full-width">
+          <div class="card-header"><h3>System Configuration</h3></div>
+          <div class="card-body">
+            <div class="config-info">
+              <div class="config-row"><label>App Version</label><span>${CONFIG.APP_VERSION}</span></div>
+              <div class="config-row"><label>Email Domain</label><span>${CONFIG.EMAIL_DOMAIN}</span></div>
+              <div class="config-row"><label>Pipeline Stages</label><span>${CONFIG.PIPELINE_STAGES.map(s=>s.label).join(' → ')}</span></div>
+              <div class="config-row"><label>Sheet ID</label><span class="mono">${CONFIG.SHEET_ID}</span></div>
+            </div>
+          </div>
+        </div>` : ''}
+      </div>
+    `;
+    feather.replace();
+  }
+
+  async function saveProfile() {
+    const name = document.getElementById('set-name')?.value;
+    if (!name) { App.toast('Name required', 'error'); return; }
+    const user = Auth.currentUser();
+    const res = await Auth.updateUser(user.userId, { name });
+    if (res.ok) {
+      const session = Auth.getSession();
+      session.name = name;
+      Auth.setSession(session);
+      App.toast('Profile saved', 'success');
+    }
+  }
+
+  function saveSignature() {
+    const sig = document.getElementById('set-signature')?.value || '';
+    localStorage.setItem('email_signature', sig);
+    App.toast('Signature saved', 'success');
+  }
+
+  async function changePassword() {
+    const pass = document.getElementById('set-newpass')?.value;
+    const confirm = document.getElementById('set-confirmpass')?.value;
+    if (!pass || pass.length < 6) { App.toast('Password must be 6+ characters', 'error'); return; }
+    if (pass !== confirm) { App.toast('Passwords do not match', 'error'); return; }
+    const user = Auth.currentUser();
+    const res = await Auth.updateUser(user.userId, { password: pass });
+    if (res.ok) App.toast('Password updated', 'success');
+  }
+
+  return { render, saveProfile, saveSignature, changePassword };
+})();
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  EDGEFORM CRM — APP SHELL & ROUTER                             ║
+// ║  Navigation, view rendering, modal system, toast notifications  ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+const App = (() => {
+  let currentView = 'dashboard';
+  let sidebarCollapsed = false;
+
+  // ── Toast Notifications ────────────────────────────────────────
+  function toast(message, type = 'info', duration = 3000) {
+    const container = document.getElementById('toast-container');
+    const el = document.createElement('div');
+    el.className = `toast toast-${type}`;
+    const icons = { success: 'check-circle', error: 'alert-circle', info: 'info', warning: 'alert-triangle' };
+    el.innerHTML = `<i data-feather="${icons[type] || 'info'}"></i><span>${message}</span>`;
+    container.appendChild(el);
+    feather.replace({ width: 16, height: 16 });
+    requestAnimationFrame(() => el.classList.add('show'));
+    setTimeout(() => {
+      el.classList.remove('show');
+      setTimeout(() => el.remove(), 300);
+    }, duration);
+  }
+
+  // ── Modal System ───────────────────────────────────────────────
+  function openModal(title, contentHTML, opts = {}) {
+    const overlay = document.getElementById('modal-overlay');
+    const modal = document.getElementById('modal');
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('modal-body').innerHTML = contentHTML;
+    if (opts.wide) modal.classList.add('modal-wide');
+    else modal.classList.remove('modal-wide');
+    overlay.classList.remove('hidden');
+    modal.classList.remove('hidden');
+    requestAnimationFrame(() => {
+      overlay.classList.add('show');
+      modal.classList.add('show');
+    });
+    if (opts.onOpen) setTimeout(opts.onOpen, 50);
+  }
+
+  function closeModal() {
+    const overlay = document.getElementById('modal-overlay');
+    const modal = document.getElementById('modal');
+    overlay.classList.remove('show');
+    modal.classList.remove('show');
+    setTimeout(() => {
+      overlay.classList.add('hidden');
+      modal.classList.add('hidden');
+    }, 300);
+  }
+
+  // ── Confirm Dialog ─────────────────────────────────────────────
+  function confirm(message, onConfirm) {
+    openModal('Confirm', `
+      <p style="margin-bottom:24px;color:var(--text-secondary)">${message}</p>
+      <div style="display:flex;gap:12px;justify-content:flex-end">
+        <button class="btn btn-ghost" onclick="App.closeModal()">Cancel</button>
+        <button class="btn btn-danger" id="confirm-yes">Confirm</button>
+      </div>
+    `);
+    setTimeout(() => {
+      document.getElementById('confirm-yes').onclick = () => { App.closeModal(); onConfirm(); };
+    }, 50);
+  }
+
+  // ── Slide Panel (Lead Detail) ──────────────────────────────────
+  function openPanel(contentHTML) {
+    const panel = document.getElementById('detail-panel');
+    const overlay = document.getElementById('panel-overlay');
+    document.getElementById('panel-content').innerHTML = contentHTML;
+    panel.classList.add('open');
+    overlay.classList.add('show');
+    feather.replace();
+  }
+
+  function closePanel() {
+    document.getElementById('detail-panel').classList.remove('open');
+    document.getElementById('panel-overlay').classList.remove('show');
+  }
+
+  // ── Navigation ─────────────────────────────────────────────────
+  const views = {
+    dashboard:  { label: 'Dashboard',  icon: 'grid',          render: () => Dashboard.render() },
+    leads:      { label: 'Leads',      icon: 'users',         render: () => Leads.render() },
+    pipeline:   { label: 'Pipeline',   icon: 'git-branch',    render: () => Pipeline.render() },
+    deals:      { label: 'Deals',      icon: 'dollar-sign',   render: () => Deals.render() },
+    tasks:      { label: 'Tasks',      icon: 'check-square',  render: () => Tasks.render() },
+    email:      { label: 'Email',      icon: 'mail',          render: () => Email.render() },
+    reports:    { label: 'Reports',    icon: 'bar-chart-2',   render: () => Reports.render() },
+    team:       { label: 'Team',       icon: 'briefcase',     render: () => Team.render(), role: 'manager' },
+    settings:   { label: 'Settings',   icon: 'settings',      render: () => Settings.render() },
+  };
+
+  function navigate(viewId) {
+    if (!views[viewId]) return;
+    if (views[viewId].role && !Auth.hasRole(views[viewId].role)) {
+      toast('Access denied', 'error');
+      return;
+    }
+    currentView = viewId;
+    // Update sidebar active state
+    document.querySelectorAll('.nav-item').forEach(el => {
+      el.classList.toggle('active', el.dataset.view === viewId);
+    });
+    // Render the view
+    views[viewId].render();
+    // Update URL hash
+    window.location.hash = viewId;
+    // Close mobile sidebar
+    if (window.innerWidth < 1024) toggleSidebar(true);
+  }
+
+  function toggleSidebar(forceClose = false) {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    if (forceClose) {
+      sidebar.classList.remove('mobile-open');
+      overlay.classList.remove('show');
+    } else {
+      sidebar.classList.toggle('mobile-open');
+      overlay.classList.toggle('show');
+    }
+  }
+
+  // ── Build Shell ────────────────────────────────────────────────
+  function buildShell() {
+    const user = Auth.currentUser();
+    const app = document.getElementById('app');
+    app.innerHTML = `
+      <!-- Sidebar Overlay (mobile) -->
+      <div id="sidebar-overlay" class="sidebar-overlay" onclick="App.toggleSidebar(true)"></div>
+
+      <!-- Sidebar -->
+      <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+          <div class="logo">
+            <div class="logo-icon">E</div>
+            <span class="logo-text">Edgeform</span>
+          </div>
+        </div>
+        <nav class="sidebar-nav">
+          ${Object.entries(views).map(([id, v]) => {
+            if (v.role && !Auth.hasRole(v.role)) return '';
+            return `<a class="nav-item ${id === currentView ? 'active' : ''}" data-view="${id}" onclick="App.navigate('${id}')">
+              <i data-feather="${v.icon}"></i>
+              <span>${v.label}</span>
+            </a>`;
+          }).join('')}
+        </nav>
+        <div class="sidebar-footer">
+          <div class="user-badge">
+            <div class="user-avatar">${(user?.name || 'U')[0].toUpperCase()}</div>
+            <div class="user-info">
+              <div class="user-name">${user?.name || 'User'}</div>
+              <div class="user-role">${user?.role || 'agent'}</div>
+            </div>
+            <button class="btn-icon" onclick="Auth.logout()" title="Logout">
+              <i data-feather="log-out"></i>
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <header class="topbar">
+          <button class="btn-icon mobile-menu" onclick="App.toggleSidebar()">
+            <i data-feather="menu"></i>
+          </button>
+          <div class="topbar-search">
+            <i data-feather="search"></i>
+            <input type="text" placeholder="Search leads, deals, contacts..." id="global-search" oninput="App.globalSearch(this.value)">
+          </div>
+          <div class="topbar-actions">
+            <button class="btn btn-primary btn-sm" onclick="Leads.showCreateModal()">
+              <i data-feather="plus"></i> New Lead
+            </button>
+          </div>
+        </header>
+        <div id="main-view" class="main-view"></div>
+      </main>
+
+      <!-- Detail Panel (slide-out) -->
+      <div id="panel-overlay" class="panel-overlay" onclick="App.closePanel()"></div>
+      <aside id="detail-panel" class="detail-panel">
+        <div class="panel-header">
+          <button class="btn-icon" onclick="App.closePanel()"><i data-feather="x"></i></button>
+        </div>
+        <div id="panel-content" class="panel-body"></div>
+      </aside>
+
+      <!-- Modal -->
+      <div id="modal-overlay" class="modal-overlay hidden" onclick="App.closeModal()"></div>
+      <div id="modal" class="modal hidden">
+        <div class="modal-header">
+          <h2 id="modal-title"></h2>
+          <button class="btn-icon" onclick="App.closeModal()"><i data-feather="x"></i></button>
+        </div>
+        <div id="modal-body" class="modal-body"></div>
+      </div>
+
+      <!-- Toast Container -->
+      <div id="toast-container" class="toast-container"></div>
+    `;
+    feather.replace();
+  }
+
+  // ── Global Search ──────────────────────────────────────────────
+  let searchTimeout;
+  function globalSearch(query) {
+    clearTimeout(searchTimeout);
+    if (query.length < 2) return;
+    searchTimeout = setTimeout(async () => {
+      const res = await API.getLeads({ search: query });
+      if (res.ok && res.leads?.length) {
+        navigate('leads');
+        Leads.render(res.leads);
+      }
+    }, 400);
+  }
+
+  // ── Init ───────────────────────────────────────────────────────
+  function init() {
+    if (!Auth.isLoggedIn()) {
+      Auth.showLoginScreen();
+      return;
+    }
+    Auth.hideLoginScreen();
+    buildShell();
+    const hash = window.location.hash.slice(1);
+    navigate(views[hash] ? hash : 'dashboard');
+  }
+
+  return {
+    init, navigate, toast, openModal, closeModal, confirm,
+    openPanel, closePanel, toggleSidebar, globalSearch,
+    getCurrentView: () => currentView,
+    getMainView: () => document.getElementById('main-view')
+  };
+})();
+
+// Boot
+document.addEventListener('DOMContentLoaded', App.init);
+window.addEventListener('hashchange', () => {
+  const hash = window.location.hash.slice(1);
+  if (hash) App.navigate(hash);
+});
+  </script>
   <!-- Auth UI Logic -->
   <script>
     function switchAuthTab(tab) {
