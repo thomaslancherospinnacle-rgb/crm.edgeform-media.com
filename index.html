@@ -933,15 +933,15 @@ const CONFIG = {
 
   // GAS #2 — CRM Core API (deploy crm-api.gs)
   // Purpose: CRUD operations for leads, notes, activities, pipeline, users
-  GAS_CRM_API: "PASTE_YOUR_CRM_API_DEPLOYMENT_URL_HERE",
+  GAS_CRM_API: "https://script.google.com/macros/s/AKfycby1vhgVzjCOiO0p4NYQ3999Bx20aK1bp2yO_tzeof_dNAcV28cBPfSaSynKN2mYSJM/exec",
 
   // GAS #3 — Dashboard & Reporting (deploy crm-reports.gs)
   // Purpose: Aggregated stats, charts data, activity feed
-  GAS_REPORTS_API: "PASTE_YOUR_REPORTS_API_DEPLOYMENT_URL_HERE",
+  GAS_REPORTS_API: "https://script.google.com/macros/s/AKfycbwbwXBz9BJF3-AGYGuyWc080OJFKwz8h9he9X9pfnCdIME1t-CCql5jAHUM6hrncFMHvQ/exec",
 
   // GAS #4 — Auth & User Management (deploy crm-auth.gs)
   // Purpose: Account creation, login verification, role management
-  GAS_AUTH_API: "PASTE_YOUR_AUTH_API_DEPLOYMENT_URL_HERE",
+  GAS_AUTH_API: "https://script.google.com/macros/s/AKfycbwycdVOJ5B2xqhcXtPY37vCHqGVT2egY9IA7PLzYElB-TzPbEAVlD4aHZbFYkNtkLZe/exec",
 
   // ── GOOGLE SHEET ID ──────────────────────────────────────────────
   // The master spreadsheet that holds all CRM data
@@ -955,7 +955,7 @@ const CONFIG = {
   // ── RESEND (Email Service) ───────────────────────────────────────
   // Used by the Cloudflare Worker to send emails
   // Get your API key at https://resend.com/api-keys
-  RESEND_API_KEY: "PASTE_YOUR_RESEND_API_KEY_HERE",
+  RESEND_API_KEY: "re_YcjESHgq_51pMXBNSVUaoyp7Wu2RibHaF",
 
   // Default sending domain — emails sent as (user)@edgeform-media.com
   EMAIL_DOMAIN: "edgeform-media.com",
@@ -963,7 +963,7 @@ const CONFIG = {
   // ── CLOUDFLARE WORKER (Email Proxy) ──────────────────────────────
   // Deploy email-worker.js to Cloudflare Workers
   // This proxies email sends so your Resend key stays server-side
-  CF_EMAIL_WORKER: "PASTE_YOUR_CLOUDFLARE_WORKER_URL_HERE",
+  CF_EMAIL_WORKER: "https://email.edgeformmedia.workers.dev",
 
   // ── PIPELINE STAGES ──────────────────────────────────────────────
   // Customize your sales pipeline stages here
